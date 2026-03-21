@@ -89,3 +89,92 @@ export interface BatchStatusUpdateItem {
   issue_id: string;
   status_id: string | null;
 }
+
+// ---- Department ----
+export interface StaffRole {
+  id: string;
+  department_id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface Department {
+  id: string;
+  production_id: string;
+  name: string;
+  color: string | null;
+  sort_order: number;
+  created_at: string;
+  staff_roles: StaffRole[];
+}
+
+export interface DepartmentCreate {
+  name: string;
+  color?: string | null;
+  sort_order?: number;
+  staff_roles?: { name: string; sort_order?: number }[];
+}
+
+export interface DepartmentUpdate {
+  name?: string;
+  color?: string | null;
+  sort_order?: number;
+}
+
+export interface StaffRoleCreate {
+  name: string;
+  sort_order?: number;
+}
+
+export interface StaffRoleUpdate {
+  name?: string;
+  sort_order?: number;
+}
+
+// ---- Organization Member ----
+export interface OrgMember {
+  id: string;
+  user_id: string;
+  display_name: string;
+  org_role: string;
+  created_at: string;
+}
+
+// ---- Production Member ----
+export interface DeptMembershipBrief {
+  id: string;
+  department_id: string;
+  department_name: string;
+  staff_role_id: string | null;
+  staff_role_name: string | null;
+  capabilities: string[];
+}
+
+export interface ProductionMember {
+  id: string;
+  user_id: string;
+  display_name: string;
+  production_role: string;
+  is_cast: boolean;
+  cast_capabilities: string[] | null;
+  created_at: string;
+  department_memberships: DeptMembershipBrief[];
+}
+
+// ---- Invitation ----
+export interface Invitation {
+  id: string;
+  organization_id: string;
+  email: string | null;
+  token: string;
+  org_role: string;
+  status: string;
+  expires_at: string;
+  created_at: string;
+  invited_by_name: string;
+}
+
+export interface InvitationCreate {
+  email?: string | null;
+  org_role?: string;
+}
