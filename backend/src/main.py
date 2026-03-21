@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import health
+from src.api import health, issues, organizations, productions, statuses
 from src.core.config import settings
 
 app = FastAPI(
@@ -19,6 +19,18 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])
+app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
+app.include_router(productions.router, prefix="/api/organizations/{org_id}/productions", tags=["productions"])
+app.include_router(
+    statuses.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/statuses",
+    tags=["statuses"],
+)
+app.include_router(
+    issues.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/issues",
+    tags=["issues"],
+)
 
 
 @app.get("/")
