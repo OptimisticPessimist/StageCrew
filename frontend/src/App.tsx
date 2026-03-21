@@ -1,5 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import KanbanPage from "@/features/kanban/KanbanPage";
+import DepartmentsPage from "@/features/departments/DepartmentsPage";
+import OrgMembersPage from "@/features/members/OrgMembersPage";
+import ProductionMembersPage from "@/features/members/ProductionMembersPage";
+import InvitationAcceptPage from "@/features/members/InvitationAcceptPage";
 
 function HomePage() {
   return (
@@ -24,6 +28,22 @@ export default function App() {
       <Route
         path="/organizations/:orgId/productions/:productionId/board"
         element={<KanbanPage />}
+      />
+      <Route
+        path="/organizations/:orgId/productions/:productionId/departments"
+        element={<DepartmentsPage />}
+      />
+      <Route
+        path="/organizations/:orgId/members"
+        element={<OrgMembersPage />}
+      />
+      <Route
+        path="/organizations/:orgId/productions/:productionId/members"
+        element={<ProductionMembersPage />}
+      />
+      <Route
+        path="/invitations/:token"
+        element={<InvitationAcceptPage />}
       />
     </Routes>
   );

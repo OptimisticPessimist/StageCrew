@@ -51,6 +51,7 @@ class Organization(Base):
 
     members: Mapped[list["OrganizationMembership"]] = relationship(back_populates="organization")
     productions: Mapped[list["Production"]] = relationship(back_populates="organization")
+    invitations: Mapped[list["Invitation"]] = relationship(back_populates="organization")
 
 
 class OrganizationMembership(Base):
@@ -64,6 +65,26 @@ class OrganizationMembership(Base):
 
     user: Mapped["User"] = relationship(back_populates="org_memberships")
     organization: Mapped["Organization"] = relationship(back_populates="members")
+
+
+# ============================================================
+# Invitation (招待)
+# ============================================================
+class Invitation(Base):
+    __tablename__ = "invitations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
+    invited_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True)
+    org_role: Mapped[str] = mapped_column(String(32), default="member")
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | accepted | expired
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    organization: Mapped["Organization"] = relationship(back_populates="invitations")
+    inviter: Mapped["User"] = relationship()
 
 
 # ============================================================

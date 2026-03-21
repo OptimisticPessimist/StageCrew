@@ -1,7 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api import health, issues, organizations, productions, statuses
+from src.api import (
+    departments,
+    dept_members,
+    health,
+    invitations,
+    issues,
+    org_members,
+    organizations,
+    production_members,
+    productions,
+    statuses,
+)
 from src.core.config import settings
 
 app = FastAPI(
@@ -30,6 +41,36 @@ app.include_router(
     issues.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/issues",
     tags=["issues"],
+)
+app.include_router(
+    departments.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/departments",
+    tags=["departments"],
+)
+app.include_router(
+    org_members.router,
+    prefix="/api/organizations/{org_id}/members",
+    tags=["org-members"],
+)
+app.include_router(
+    production_members.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/members",
+    tags=["production-members"],
+)
+app.include_router(
+    dept_members.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/departments/{dept_id}/members",
+    tags=["department-members"],
+)
+app.include_router(
+    invitations.org_router,
+    prefix="/api/organizations/{org_id}/invitations",
+    tags=["invitations"],
+)
+app.include_router(
+    invitations.accept_router,
+    prefix="/api/invitations",
+    tags=["invitations"],
 )
 
 
