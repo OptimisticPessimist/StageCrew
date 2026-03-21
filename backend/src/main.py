@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import (
+    auth,
     departments,
     dept_members,
     health,
@@ -29,6 +30,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/auth/discord", tags=["auth"])
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(productions.router, prefix="/api/organizations/{org_id}/productions", tags=["productions"])
