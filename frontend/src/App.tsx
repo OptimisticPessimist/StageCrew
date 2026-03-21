@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import KanbanPage from "@/features/kanban/KanbanPage";
 
 function HomePage() {
   return (
@@ -20,6 +21,10 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route
+        path="/organizations/:orgId/productions/:productionId/board"
+        element={<KanbanPage />}
+      />
     </Routes>
   );
 }
