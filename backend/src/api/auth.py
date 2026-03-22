@@ -1,10 +1,11 @@
-"""Discord OAuth2 認証エンドポイント。"""
+"""Discord OAuth2 authentication endpoints."""
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,10 +22,12 @@ DISCORD_API_BASE = "https://discord.com/api/v10"
 DISCORD_AUTH_URL = "https://discord.com/api/oauth2/authorize"
 DISCORD_TOKEN_URL = f"{DISCORD_API_BASE}/oauth2/token"
 DISCORD_USER_URL = f"{DISCORD_API_BASE}/users/@me"
+OAUTH_STATE_COOKIE = "stagecrew_oauth_state"
+OAUTH_STATE_MAX_AGE = 600
 
 
 def _create_access_token(user_id: str, discord_id: str) -> str:
-    """JWTアクセストークンを生成する。"""
+    """Create a JWT access token for the authenticated user."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     payload = {"sub": user_id, "discord_id": discord_id, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
@@ -32,20 +35,41 @@ def _create_access_token(user_id: str, discord_id: str) -> str:
 
 @router.get("/login")
 async def discord_login():
-    """Discord OAuth2 認可URLへリダイレクト。"""
+    """Redirect to the Discord OAuth2 authorization URL."""
+    state = secrets.token_urlsafe(32)
     params = {
         "client_id": settings.discord_client_id,
         "redirect_uri": settings.discord_redirect_uri,
         "response_type": "code",
         "scope": "identify email",
+        "state": state,
     }
-    return RedirectResponse(f"{DISCORD_AUTH_URL}?{urlencode(params)}")
+    response = RedirectResponse(f"{DISCORD_AUTH_URL}?{urlencode(params)}")
+    response.set_cookie(
+        key=OAUTH_STATE_COOKIE,
+        value=state,
+        max_age=OAUTH_STATE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=not settings.debug,
+    )
+    return response
 
 
 @router.get("/callback")
-async def discord_callback(code: str, db: AsyncSession = Depends(get_db)):
-    """Discord OAuth2 コールバック。code→トークン交換→ユーザーupsert→JWT発行。"""
-    # 1. code → Discord アクセストークン
+async def discord_callback(
+    code: str,
+    state: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle the Discord OAuth2 callback and issue the app JWT."""
+    cookie_state = request.cookies.get(OAUTH_STATE_COOKIE)
+    if not cookie_state or not secrets.compare_digest(state, cookie_state):
+        response = RedirectResponse(f"{settings.frontend_url}/login?error=invalid_state")
+        response.delete_cookie(OAUTH_STATE_COOKIE)
+        return response
+
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(
             DISCORD_TOKEN_URL,
@@ -59,18 +83,21 @@ async def discord_callback(code: str, db: AsyncSession = Depends(get_db)):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         if token_resp.status_code != 200:
-            return RedirectResponse(f"{settings.frontend_url}/login?error=token_exchange_failed")
+            response = RedirectResponse(f"{settings.frontend_url}/login?error=token_exchange_failed")
+            response.delete_cookie(OAUTH_STATE_COOKIE)
+            return response
 
         token_data = token_resp.json()
         access_token = token_data["access_token"]
 
-        # 2. Discord ユーザー情報取得
         user_resp = await client.get(
             DISCORD_USER_URL,
             headers={"Authorization": f"Bearer {access_token}"},
         )
         if user_resp.status_code != 200:
-            return RedirectResponse(f"{settings.frontend_url}/login?error=user_fetch_failed")
+            response = RedirectResponse(f"{settings.frontend_url}/login?error=user_fetch_failed")
+            response.delete_cookie(OAUTH_STATE_COOKIE)
+            return response
 
         discord_user = user_resp.json()
 
@@ -84,7 +111,6 @@ async def discord_callback(code: str, db: AsyncSession = Depends(get_db)):
         else None
     )
 
-    # 3. ユーザー upsert
     result = await db.execute(select(User).where(User.discord_id == discord_id))
     user = result.scalar_one_or_none()
 
@@ -103,9 +129,10 @@ async def discord_callback(code: str, db: AsyncSession = Depends(get_db)):
 
     await db.flush()
 
-    # 4. JWT 発行 → フロントエンドへリダイレクト
     token = _create_access_token(str(user.id), discord_id)
-    return RedirectResponse(f"{settings.frontend_url}/auth/callback?token={token}")
+    response = RedirectResponse(f"{settings.frontend_url}/auth/callback?token={token}")
+    response.delete_cookie(OAUTH_STATE_COOKIE)
+    return response
 
 
 @router.get("/me")
@@ -113,7 +140,7 @@ async def get_me(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """現在のユーザー情報を返す。"""
+    """Return the currently authenticated user."""
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one_or_none()
     if user is None:

@@ -191,8 +191,10 @@ def notify_deadline_reminder(
     for issue in issues:
         days = issue["days_remaining"]
         assignees = "\u3001".join(issue["assignee_names"]) if issue["assignee_names"] else "\u672a\u5272\u5f53"
-        if days <= 0:
+        if days < 0:
             lines.append(f"\u203c\ufe0f **\u671f\u9650\u8d85\u904e**: {issue['title']} (\u62c5\u5f53: {assignees})")
+        elif days == 0:
+            lines.append(f"\U0001f6a8 **\u672c\u65e5\u671f\u9650**: {issue['title']} (\u62c5\u5f53: {assignees})")
         elif days == 1:
             lines.append(f"\u26a0\ufe0f **\u660e\u65e5\u671f\u9650**: {issue['title']} (\u62c5\u5f53: {assignees})")
         else:

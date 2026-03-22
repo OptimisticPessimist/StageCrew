@@ -1,15 +1,10 @@
-"""Periodic deadline reminder service.
-
-Runs as an asyncio background task within the FastAPI lifespan.
-Checks once daily (at a configurable UTC hour) for issues approaching
-their due dates and sends Discord webhook notifications.
-"""
+"""Periodic deadline reminder service."""
 
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,13 +20,51 @@ from src.services.discord_webhook import notify_deadline_reminder
 
 logger = logging.getLogger(__name__)
 
+ADVISORY_LOCK_ID = 842_021_517
+
+
+def _normalize_utc(value: datetime) -> datetime:
+    """Convert a timestamp to UTC while handling naive SQLite test values."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _days_remaining(due_date: datetime, now: datetime) -> int:
+    """Return the number of calendar days from now until the due date in UTC."""
+    due_day = _normalize_utc(due_date).date()
+    now_day = _normalize_utc(now).date()
+    return (due_day - now_day).days
+
+
+async def _try_acquire_lock(db: AsyncSession) -> bool:
+    """Use a Postgres advisory lock so only one app instance sends reminders."""
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return True
+    result = await db.execute(select(func.pg_try_advisory_lock(ADVISORY_LOCK_ID)))
+    return bool(result.scalar())
+
+
+async def _release_lock(db: AsyncSession) -> None:
+    """Release the advisory lock when the check completes."""
+    if db.bind is None or db.bind.dialect.name != "postgresql":
+        return
+    await db.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": ADVISORY_LOCK_ID})
+
 
 async def _run_check() -> None:
     """Query issues with approaching deadlines and send reminders."""
     now = datetime.now(UTC)
 
     async with async_session() as db:
-        await _check_and_notify(db, now)
+        if not await _try_acquire_lock(db):
+            logger.info("Skipping deadline reminder check on this instance; another node holds the lock")
+            return
+
+        try:
+            await _check_and_notify(db, now)
+        finally:
+            await _release_lock(db)
 
 
 async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
@@ -39,8 +72,6 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
     max_days = max(settings.deadline_reminder_days)
     cutoff = now + timedelta(days=max_days + 1)
 
-    # Get all open issues with due dates within the reminder window
-    # Subquery for closed status IDs
     closed_status_ids = select(StatusDefinition.id).where(StatusDefinition.is_closed.is_(True))
 
     stmt = (
@@ -58,7 +89,6 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
     result = await db.execute(stmt)
     issues = result.scalars().unique().all()
 
-    # Group by production
     by_production: dict[str, list[dict]] = {}
     productions: dict[str, Production] = {}
 
@@ -66,14 +96,11 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
         if not issue.due_date:
             continue
 
-        days_remaining = (issue.due_date.replace(tzinfo=UTC) - now).days
-
-        # Only include if days_remaining matches one of the configured thresholds
-        # or if already overdue
+        days_remaining = _days_remaining(issue.due_date, now)
         if days_remaining > max_days:
             continue
 
-        should_notify = days_remaining <= 0 or days_remaining in settings.deadline_reminder_days
+        should_notify = days_remaining < 0 or days_remaining in settings.deadline_reminder_days
         if not should_notify:
             continue
 
@@ -84,20 +111,20 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
 
         assignee_names = [a.user.display_name for a in issue.assignees]
 
-        by_production[prod_id].append({
-            "title": issue.title,
-            "due_date": issue.due_date.isoformat(),
-            "assignee_names": assignee_names,
-            "days_remaining": days_remaining,
-        })
+        by_production[prod_id].append(
+            {
+                "title": issue.title,
+                "due_date": issue.due_date.isoformat(),
+                "assignee_names": assignee_names,
+                "days_remaining": days_remaining,
+            }
+        )
 
-    # Send notifications
     for prod_id, issue_list in by_production.items():
         production = productions[prod_id]
         if not production.discord_webhook_url:
             continue
 
-        # Sort: overdue first, then by days remaining
         issue_list.sort(key=lambda x: x["days_remaining"])
 
         notify_deadline_reminder(
@@ -113,7 +140,7 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
 
 
 async def deadline_reminder_loop() -> None:
-    """Background loop that runs the deadline check once daily at the configured UTC hour."""
+    """Run the deadline check once daily at the configured UTC hour."""
     logger.info(
         "Deadline reminder started (check hour: %02d:00 UTC, days: %s)",
         settings.deadline_reminder_hour_utc,
