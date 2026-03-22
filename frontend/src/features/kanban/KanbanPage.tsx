@@ -11,6 +11,7 @@ import {
 import KanbanBoard from "./KanbanBoard";
 import IssueCreateModal from "./IssueCreateModal";
 import IssueDetailPanel from "./IssueDetailPanel";
+import CountdownBadge from "@/features/production/CountdownBadge";
 
 export default function KanbanPage() {
   const { orgId, productionId } = useParams<{
@@ -107,6 +108,7 @@ export default function KanbanPage() {
           >
             ガントチャート
           </Link>
+          <CountdownBadge orgId={orgId!} productionId={productionId!} />
         </div>
         <div className="flex items-center gap-2">
           {showStatusForm ? (

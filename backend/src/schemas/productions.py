@@ -34,9 +34,24 @@ class ProductionResponse(BaseModel):
     opening_date: datetime | None
     closing_date: datetime | None
     current_phase: str | None
-    discord_webhook_url: str | None
     created_at: datetime
     updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ProductionWebhookResponse(BaseModel):
+    discord_webhook_url: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class ProductionSummaryResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    opening_date: datetime | None
+    closing_date: datetime | None
+    current_phase: str | None
 
     model_config = {"from_attributes": True}
 

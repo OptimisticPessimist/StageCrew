@@ -5,6 +5,9 @@ import { useStatuses } from "@/features/kanban/hooks/useStatuses";
 import { useIssueDetail, useUpdateIssueStatus } from "@/features/kanban/hooks/useIssues";
 import GanttChart from "./GanttChart";
 import IssueDetailPanel from "@/features/kanban/IssueDetailPanel";
+import CountdownBadge from "@/features/production/CountdownBadge";
+import { useProduction } from "@/features/production/hooks/useProduction";
+import { parseLocalDate } from "@/features/production/CountdownBadge";
 import type { Issue } from "@/types";
 
 type ViewMode = "week" | "month";
@@ -24,6 +27,10 @@ export default function GanttPage() {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [showUnscheduled, setShowUnscheduled] = useState(false);
 
+  const { data: production } = useProduction(orgId!, productionId!);
+  const openingDate = production?.opening_date ? parseLocalDate(production.opening_date) : null;
+  const closingDate = production?.closing_date ? parseLocalDate(production.closing_date) : null;
+
   const {
     scheduledGroups,
     unscheduledIssues,
@@ -32,7 +39,7 @@ export default function GanttPage() {
     timelineStart,
     timelineEnd,
     isLoading,
-  } = useGanttData(orgId!, productionId!);
+  } = useGanttData(orgId!, productionId!, { openingDate, closingDate });
 
   const { data: statuses = [] } = useStatuses(orgId!, productionId!);
   const { data: selectedIssue } = useIssueDetail(
@@ -69,6 +76,7 @@ export default function GanttPage() {
           >
             カンバンボード
           </Link>
+          <CountdownBadge orgId={orgId!} productionId={productionId!} />
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-gray-300 overflow-hidden">
@@ -98,7 +106,7 @@ export default function GanttPage() {
 
       {/* ガントチャート */}
       <main className="flex-1 overflow-hidden p-6">
-        {scheduledGroups.length === 0 && phases.length === 0 && milestones.length === 0 ? (
+        {scheduledGroups.length === 0 && phases.length === 0 && milestones.length === 0 && !openingDate ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-gray-500 text-lg mb-2">
               スケジュールされた課題がありません
@@ -121,6 +129,7 @@ export default function GanttPage() {
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
             dayWidth={DAY_WIDTH[viewMode]}
+            openingDate={openingDate}
             onIssueClick={handleIssueClick}
           />
         )}

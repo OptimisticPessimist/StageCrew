@@ -16,7 +16,9 @@ from src.schemas.productions import (
     ProductionCreate,
     ProductionListResponse,
     ProductionResponse,
+    ProductionSummaryResponse,
     ProductionUpdate,
+    ProductionWebhookResponse,
 )
 
 router = APIRouter()
@@ -70,6 +72,32 @@ async def create_production(
     db.add(membership)
     await db.flush()
 
+    return production
+
+
+@router.get("/{production_id}/summary", response_model=ProductionSummaryResponse)
+async def get_production_summary(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """公演の日付サマリーを取得（webhook等の機密情報を含まない）"""
+    await _check_org_membership(org_id, current_user.id, db)
+    production = await _get_production_or_404(production_id, org_id, db)
+    return production
+
+
+@router.get("/{production_id}/webhook", response_model=ProductionWebhookResponse)
+async def get_production_webhook(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """公演のWebhook設定を取得（公演managerまたは団体admin以上）"""
+    production = await _get_production_or_404(production_id, org_id, db)
+    await _check_production_manager_or_org_admin(org_id, production_id, current_user.id, db)
     return production
 
 

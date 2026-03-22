@@ -1,3 +1,12 @@
+// ---- Production ----
+export interface ProductionSummary {
+  id: string;
+  name: string;
+  opening_date: string | null;
+  closing_date: string | null;
+  current_phase: string | null;
+}
+
 // ---- Status ----
 export interface StatusDefinition {
   id: string;
