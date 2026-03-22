@@ -8,8 +8,10 @@ from src.api import (
     health,
     invitations,
     issues,
+    milestones,
     org_members,
     organizations,
+    phases,
     production_members,
     productions,
     statuses,
@@ -63,6 +65,16 @@ app.include_router(
     dept_members.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/departments/{dept_id}/members",
     tags=["department-members"],
+)
+app.include_router(
+    phases.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/phases",
+    tags=["phases"],
+)
+app.include_router(
+    milestones.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/milestones",
+    tags=["milestones"],
 )
 app.include_router(
     invitations.org_router,

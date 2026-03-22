@@ -209,6 +209,7 @@ def _issue_to_list_response(issue: Issue) -> IssueListResponse:
         status_id=issue.status_id,
         department_id=issue.department_id,
         due_date=issue.due_date,
+        start_date=issue.start_date,
         assignees=[
             {"user_id": a.user_id, "display_name": a.user.display_name}
             for a in issue.assignees
