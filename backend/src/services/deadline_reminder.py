@@ -9,7 +9,7 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -48,7 +48,7 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
         .where(
             Issue.due_date.isnot(None),
             Issue.due_date <= cutoff,
-            Issue.status_id.notin_(closed_status_ids),
+            or_(Issue.status_id.is_(None), Issue.status_id.notin_(closed_status_ids)),
         )
         .options(
             selectinload(Issue.assignees).selectinload(IssueAssignee.user),
@@ -73,9 +73,7 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
         if days_remaining > max_days:
             continue
 
-        should_notify = days_remaining <= 0 or any(
-            days_remaining <= d for d in settings.deadline_reminder_days
-        )
+        should_notify = days_remaining <= 0 or days_remaining in settings.deadline_reminder_days
         if not should_notify:
             continue
 
