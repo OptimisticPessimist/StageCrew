@@ -2,17 +2,55 @@
 
 Sends embed-formatted notifications to Discord channels via webhook URLs.
 All sends are fire-and-forget: errors are logged but never raised to callers.
+
+Notifications from API endpoints are queued via a ContextVar and only dispatched
+after the DB transaction commits (see ``get_db``).  Code running outside a
+request context (e.g. ``deadline_reminder_loop``) sends immediately.
 """
 
 import asyncio
 import logging
+from contextvars import ContextVar
 from datetime import UTC, datetime
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-# Color-blind friendly palette (Wong palette)
+# ---- Webhook queue (post-commit dispatch) ----
+
+_pending: ContextVar[list[tuple[str, dict]]] = ContextVar("discord_pending")
+
+# Discord embed description limit
+_EMBED_DESC_MAX = 4096
+
+
+def init_webhook_queue() -> None:
+    """Initialise a per-request queue.  Call at the start of ``get_db``."""
+    _pending.set([])
+
+
+async def send_queued_webhooks() -> None:
+    """Fire all queued webhooks.  Call after ``session.commit()``."""
+    try:
+        queue = _pending.get()
+    except LookupError:
+        return
+    for url, payload in queue:
+        asyncio.create_task(_send_webhook(url, payload))
+    queue.clear()
+
+
+def discard_webhook_queue() -> None:
+    """Drop queued webhooks (e.g. on rollback)."""
+    try:
+        _pending.get().clear()
+    except LookupError:
+        pass
+
+
+# ---- Color-blind friendly palette (Wong palette) ----
+
 PRIORITY_COLORS = {
     "high": 0xD55E00,    # vermillion
     "medium": 0xE69F00,  # amber
@@ -24,16 +62,16 @@ COLOR_COMMENT = 0xCC79A7      # reddish purple
 COLOR_REMINDER = 0xD55E00     # vermillion
 
 ISSUE_TYPE_LABELS = {
-    "task": "\u30bf\u30b9\u30af",
-    "bug": "\u30d0\u30b0\u30fb\u554f\u984c",
-    "request": "\u8981\u671b",
-    "notice": "\u9023\u7d61\u4e8b\u9805",
+    "task": "タスク",
+    "bug": "バグ・問題",
+    "request": "要望",
+    "notice": "連絡事項",
 }
 
 PRIORITY_LABELS = {
-    "high": "\u9ad8",
-    "medium": "\u4e2d",
-    "low": "\u4f4e",
+    "high": "高",
+    "medium": "中",
+    "low": "低",
 }
 
 
@@ -48,11 +86,18 @@ async def _send_webhook(webhook_url: str, payload: dict) -> None:
         logger.exception("Discord webhook error")
 
 
-def fire_and_forget(webhook_url: str | None, payload: dict) -> None:
-    """Schedule webhook send as a background task. No-op if webhook_url is None."""
+def _enqueue(webhook_url: str | None, payload: dict) -> None:
+    """Add a webhook payload to the per-request queue.
+
+    If no queue exists (outside a request context, e.g. deadline reminder loop),
+    the payload is sent immediately via ``asyncio.create_task``.
+    """
     if not webhook_url:
         return
-    asyncio.create_task(_send_webhook(webhook_url, payload))
+    try:
+        _pending.get().append((webhook_url, payload))
+    except LookupError:
+        asyncio.create_task(_send_webhook(webhook_url, payload))
 
 
 def notify_issue_created(
@@ -71,26 +116,26 @@ def notify_issue_created(
     color = PRIORITY_COLORS.get(priority, COLOR_UPDATE)
 
     fields = [
-        {"name": "\u7a2e\u5225", "value": type_label, "inline": True},
-        {"name": "\u512a\u5148\u5ea6", "value": priority_label, "inline": True},
+        {"name": "種別", "value": type_label, "inline": True},
+        {"name": "優先度", "value": priority_label, "inline": True},
     ]
     if department_name:
-        fields.append({"name": "\u90e8\u9580", "value": department_name, "inline": True})
+        fields.append({"name": "部門", "value": department_name, "inline": True})
     if assignee_names:
-        fields.append({"name": "\u62c5\u5f53\u8005", "value": "\u3001".join(assignee_names), "inline": False})
+        fields.append({"name": "担当者", "value": "、".join(assignee_names), "inline": False})
 
     payload = {
         "embeds": [
             {
-                "title": f"\u2795 \u65b0\u898f\u8ab2\u984c: {title}",
+                "title": f"➕ 新規課題: {title}",
                 "color": color,
                 "fields": fields,
-                "footer": {"text": f"\u4f5c\u6210\u8005: {creator_name}"},
+                "footer": {"text": f"作成者: {creator_name}"},
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         ]
     }
-    fire_and_forget(webhook_url, payload)
+    _enqueue(webhook_url, payload)
 
 
 def notify_issue_updated(
@@ -108,22 +153,22 @@ def notify_issue_updated(
         return
 
     fields = [
-        {"name": label, "value": f"{old} \u2192 {new}", "inline": False}
+        {"name": label, "value": f"{old} → {new}", "inline": False}
         for label, (old, new) in changes.items()
     ]
 
     payload = {
         "embeds": [
             {
-                "title": f"\u270f\ufe0f \u8ab2\u984c\u66f4\u65b0: {title}",
+                "title": f"✏️ 課題更新: {title}",
                 "color": COLOR_UPDATE,
                 "fields": fields,
-                "footer": {"text": f"\u66f4\u65b0\u8005: {updater_name}"},
+                "footer": {"text": f"更新者: {updater_name}"},
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         ]
     }
-    fire_and_forget(webhook_url, payload)
+    _enqueue(webhook_url, payload)
 
 
 def notify_issue_completed(
@@ -137,17 +182,17 @@ def notify_issue_completed(
     payload = {
         "embeds": [
             {
-                "title": f"\u2705 \u5b8c\u4e86: {title}",
+                "title": f"✅ 完了: {title}",
                 "color": COLOR_COMPLETED,
                 "fields": [
-                    {"name": "\u30b9\u30c6\u30fc\u30bf\u30b9", "value": status_name, "inline": True},
+                    {"name": "ステータス", "value": status_name, "inline": True},
                 ],
-                "footer": {"text": f"\u5b8c\u4e86\u8005: {completer_name}"},
+                "footer": {"text": f"完了者: {completer_name}"},
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         ]
     }
-    fire_and_forget(webhook_url, payload)
+    _enqueue(webhook_url, payload)
 
 
 def notify_comment_added(
@@ -163,15 +208,15 @@ def notify_comment_added(
     payload = {
         "embeds": [
             {
-                "title": f"\U0001f4ac \u30b3\u30e1\u30f3\u30c8: {issue_title}",
+                "title": f"💬 コメント: {issue_title}",
                 "color": COLOR_COMMENT,
                 "description": truncated,
-                "footer": {"text": f"\u6295\u7a3f\u8005: {commenter_name}"},
+                "footer": {"text": f"投稿者: {commenter_name}"},
                 "timestamp": datetime.now(UTC).isoformat(),
             }
         ]
     }
-    fire_and_forget(webhook_url, payload)
+    _enqueue(webhook_url, payload)
 
 
 def notify_deadline_reminder(
@@ -182,32 +227,59 @@ def notify_deadline_reminder(
 ) -> None:
     """Send deadline reminder notification.
 
-    issues: list of dicts with keys: title, due_date, assignee_names, days_remaining
+    issues: list of dicts with keys: title, due_date, assignee_names, days_remaining.
+    Splits into multiple messages when the description exceeds Discord's 4096
+    character limit.
     """
     if not issues:
         return
 
-    lines = []
+    lines: list[str] = []
     for issue in issues:
         days = issue["days_remaining"]
-        assignees = "\u3001".join(issue["assignee_names"]) if issue["assignee_names"] else "\u672a\u5272\u5f53"
+        assignees = "、".join(issue["assignee_names"]) if issue["assignee_names"] else "未割当"
         if days < 0:
-            lines.append(f"\u203c\ufe0f **\u671f\u9650\u8d85\u904e**: {issue['title']} (\u62c5\u5f53: {assignees})")
+            lines.append(f"‼️ **期限超過**: {issue['title']} (担当: {assignees})")
         elif days == 0:
-            lines.append(f"\U0001f6a8 **\u672c\u65e5\u671f\u9650**: {issue['title']} (\u62c5\u5f53: {assignees})")
+            lines.append(f"🚨 **本日期限**: {issue['title']} (担当: {assignees})")
         elif days == 1:
-            lines.append(f"\u26a0\ufe0f **\u660e\u65e5\u671f\u9650**: {issue['title']} (\u62c5\u5f53: {assignees})")
+            lines.append(f"⚠️ **明日期限**: {issue['title']} (担当: {assignees})")
         else:
-            lines.append(f"\U0001f4c5 **\u3042\u3068{days}\u65e5**: {issue['title']} (\u62c5\u5f53: {assignees})")
+            lines.append(f"📅 **あと{days}日**: {issue['title']} (担当: {assignees})")
 
-    payload = {
-        "embeds": [
-            {
-                "title": f"\u23f0 \u671f\u9650\u30ea\u30de\u30a4\u30f3\u30c0\u30fc: {production_name}",
-                "color": COLOR_REMINDER,
-                "description": "\n".join(lines),
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-        ]
-    }
-    fire_and_forget(webhook_url, payload)
+    # Split lines into chunks that fit within Discord's embed description limit
+    chunks: list[list[str]] = []
+    current_chunk: list[str] = []
+    current_len = 0
+
+    for line in lines:
+        # +1 for the newline separator
+        line_len = len(line) + (1 if current_chunk else 0)
+        if current_chunk and current_len + line_len > _EMBED_DESC_MAX:
+            chunks.append(current_chunk)
+            current_chunk = [line]
+            current_len = len(line)
+        else:
+            current_chunk.append(line)
+            current_len += line_len
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    now_iso = datetime.now(UTC).isoformat()
+    for i, chunk in enumerate(chunks):
+        title = f"⏰ 期限リマインダー: {production_name}"
+        if len(chunks) > 1:
+            title += f" ({i + 1}/{len(chunks)})"
+
+        payload = {
+            "embeds": [
+                {
+                    "title": title,
+                    "color": COLOR_REMINDER,
+                    "description": "\n".join(chunk),
+                    "timestamp": now_iso,
+                }
+            ]
+        }
+        _enqueue(webhook_url, payload)

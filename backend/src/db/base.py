@@ -12,10 +12,19 @@ class Base(DeclarativeBase):
 
 
 async def get_db() -> AsyncSession:
+    from src.services.discord_webhook import (
+        discard_webhook_queue,
+        init_webhook_queue,
+        send_queued_webhooks,
+    )
+
+    init_webhook_queue()
     async with async_session() as session:
         try:
             yield session
             await session.commit()
+            await send_queued_webhooks()
         except Exception:
             await session.rollback()
+            discard_webhook_queue()
             raise
