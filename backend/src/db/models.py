@@ -100,7 +100,7 @@ class Production(Base):
     organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(256))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    production_type: Mapped[str] = mapped_column(String(16), default="real")  # real | vr | hybrid
+    production_type: Mapped[str] = mapped_column(String(16), default="physical")  # physical | vr | hybrid
     opening_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     closing_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     current_phase: Mapped[str | None] = mapped_column(String(64), nullable=True)

@@ -1,4 +1,22 @@
+// ---- Organization ----
+export interface OrganizationSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  member_count: number;
+}
+
 // ---- Production ----
+export interface ProductionListItem {
+  id: string;
+  name: string;
+  production_type: string;
+  opening_date: string | null;
+  closing_date: string | null;
+  current_phase: string | null;
+  created_at: string;
+}
+
 export interface ProductionSummary {
   id: string;
   name: string;
