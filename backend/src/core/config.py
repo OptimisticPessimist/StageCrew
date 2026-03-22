@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # Frontend
     frontend_url: str = "http://localhost:5173"
 
+    # Deadline reminder
+    deadline_reminder_hour_utc: int = 0  # Check hour in UTC (0 = JST 9:00)
+    deadline_reminder_days: list[int] = [3, 1]  # Notify N days before due date
+
     # CORS
     cors_origins: list[str] = ["http://localhost:5173"]
 
