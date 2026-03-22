@@ -239,13 +239,18 @@ def notify_deadline_reminder(
         days = issue["days_remaining"]
         assignees = "、".join(issue["assignee_names"]) if issue["assignee_names"] else "未割当"
         if days < 0:
-            lines.append(f"‼️ **期限超過**: {issue['title']} (担当: {assignees})")
+            line = f"‼️ **期限超過**: {issue['title']} (担当: {assignees})"
         elif days == 0:
-            lines.append(f"🚨 **本日期限**: {issue['title']} (担当: {assignees})")
+            line = f"🚨 **本日期限**: {issue['title']} (担当: {assignees})"
         elif days == 1:
-            lines.append(f"⚠️ **明日期限**: {issue['title']} (担当: {assignees})")
+            line = f"⚠️ **明日期限**: {issue['title']} (担当: {assignees})"
         else:
-            lines.append(f"📅 **あと{days}日**: {issue['title']} (担当: {assignees})")
+            line = f"📅 **あと{days}日**: {issue['title']} (担当: {assignees})"
+
+        # Truncate single lines that exceed the embed description limit
+        if len(line) > _EMBED_DESC_MAX:
+            line = line[: _EMBED_DESC_MAX - 1] + "…"
+        lines.append(line)
 
     # Split lines into chunks that fit within Discord's embed description limit
     chunks: list[list[str]] = []
