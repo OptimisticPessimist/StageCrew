@@ -20,12 +20,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute(
-        sa.text("UPDATE productions SET production_type = 'physical' WHERE production_type = 'real'")
-    )
+    op.execute(sa.text("UPDATE productions SET production_type = 'physical' WHERE production_type = 'real'"))
 
 
 def downgrade() -> None:
-    op.execute(
-        sa.text("UPDATE productions SET production_type = 'real' WHERE production_type = 'physical'")
-    )
+    op.execute(sa.text("UPDATE productions SET production_type = 'real' WHERE production_type = 'physical'"))
