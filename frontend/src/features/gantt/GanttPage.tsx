@@ -26,6 +26,10 @@ export default function GanttPage() {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [showUnscheduled, setShowUnscheduled] = useState(false);
 
+  const { data: production } = useProduction(orgId!, productionId!);
+  const openingDate = production?.opening_date ? new Date(production.opening_date) : null;
+  const closingDate = production?.closing_date ? new Date(production.closing_date) : null;
+
   const {
     scheduledGroups,
     unscheduledIssues,
@@ -34,7 +38,7 @@ export default function GanttPage() {
     timelineStart,
     timelineEnd,
     isLoading,
-  } = useGanttData(orgId!, productionId!);
+  } = useGanttData(orgId!, productionId!, { openingDate, closingDate });
 
   const { data: statuses = [] } = useStatuses(orgId!, productionId!);
   const { data: selectedIssue } = useIssueDetail(
@@ -43,8 +47,6 @@ export default function GanttPage() {
     selectedIssueId,
   );
   const updateStatus = useUpdateIssueStatus(orgId!, productionId!);
-  const { data: production } = useProduction(orgId!, productionId!);
-  const openingDate = production?.opening_date ? new Date(production.opening_date) : null;
 
   const handleIssueClick = (issue: Issue) => {
     setSelectedIssueId(issue.id);

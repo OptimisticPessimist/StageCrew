@@ -10,7 +10,12 @@ export interface DepartmentGroup {
   issues: Issue[];
 }
 
-export function useGanttData(orgId: string, productionId: string) {
+interface UseGanttDataOptions {
+  openingDate?: Date | null;
+  closingDate?: Date | null;
+}
+
+export function useGanttData(orgId: string, productionId: string, options?: UseGanttDataOptions) {
   const { data: issues = [], isLoading: loadingIssues } = useIssues(orgId, productionId);
   const { data: departments = [], isLoading: loadingDepartments } = useDepartments(orgId, productionId);
   const { data: phases = [], isLoading: loadingPhases } = usePhases(orgId, productionId);
@@ -85,6 +90,9 @@ export function useGanttData(orgId: string, productionId: string) {
       if (milestone.date) allDates.push(new Date(milestone.date));
     }
 
+    if (options?.openingDate) allDates.push(options.openingDate);
+    if (options?.closingDate) allDates.push(options.closingDate);
+
     let start: Date;
     let end: Date;
 
@@ -111,7 +119,7 @@ export function useGanttData(orgId: string, productionId: string) {
       timelineStart: start,
       timelineEnd: end,
     };
-  }, [issues, departments, phases, milestones]);
+  }, [issues, departments, phases, milestones, options?.openingDate, options?.closingDate]);
 
   return {
     scheduledGroups,

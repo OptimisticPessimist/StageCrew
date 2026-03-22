@@ -5,12 +5,15 @@ interface CountdownBadgeProps {
   productionId: string;
 }
 
+/** ISO datetime文字列から日付部分だけ取り出してローカルDate（午前0時）を返す */
+function parseLocalDate(isoString: string): Date {
+  const [datePart] = isoString.split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function calendarDays(from: Date, to: Date): number {
-  const a = new Date(from);
-  a.setHours(0, 0, 0, 0);
-  const b = new Date(to);
-  b.setHours(0, 0, 0, 0);
-  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }
 
 export default function CountdownBadge({ orgId, productionId }: CountdownBadgeProps) {
@@ -19,8 +22,9 @@ export default function CountdownBadge({ orgId, productionId }: CountdownBadgePr
   if (!production?.opening_date) return null;
 
   const today = new Date();
-  const opening = new Date(production.opening_date);
-  const closing = production.closing_date ? new Date(production.closing_date) : null;
+  today.setHours(0, 0, 0, 0);
+  const opening = parseLocalDate(production.opening_date);
+  const closing = production.closing_date ? parseLocalDate(production.closing_date) : null;
 
   const daysToOpening = calendarDays(today, opening);
   const daysToClosing = closing ? calendarDays(today, closing) : null;
