@@ -7,6 +7,7 @@ import GanttChart from "./GanttChart";
 import IssueDetailPanel from "@/features/kanban/IssueDetailPanel";
 import CountdownBadge from "@/features/production/CountdownBadge";
 import { useProduction } from "@/features/production/hooks/useProduction";
+import { parseLocalDate } from "@/features/production/CountdownBadge";
 import type { Issue } from "@/types";
 
 type ViewMode = "week" | "month";
@@ -27,8 +28,8 @@ export default function GanttPage() {
   const [showUnscheduled, setShowUnscheduled] = useState(false);
 
   const { data: production } = useProduction(orgId!, productionId!);
-  const openingDate = production?.opening_date ? new Date(production.opening_date) : null;
-  const closingDate = production?.closing_date ? new Date(production.closing_date) : null;
+  const openingDate = production?.opening_date ? parseLocalDate(production.opening_date) : null;
+  const closingDate = production?.closing_date ? parseLocalDate(production.closing_date) : null;
 
   const {
     scheduledGroups,

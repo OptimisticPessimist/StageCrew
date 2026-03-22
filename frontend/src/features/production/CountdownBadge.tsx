@@ -6,7 +6,7 @@ interface CountdownBadgeProps {
 }
 
 /** ISO datetime文字列から日付部分だけ取り出してローカルDate（午前0時）を返す */
-function parseLocalDate(isoString: string): Date {
+export function parseLocalDate(isoString: string): Date {
   const [datePart] = isoString.split("T");
   const [y, m, d] = datePart.split("-").map(Number);
   return new Date(y, m - 1, d);
