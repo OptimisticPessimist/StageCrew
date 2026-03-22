@@ -281,9 +281,12 @@ def notify_deadline_reminder(
 
     now_iso = datetime.now(UTC).isoformat()
     for i, chunk in enumerate(chunks):
-        title = f"⏰ 期限リマインダー: {production_name}"
-        if len(chunks) > 1:
-            title += f" ({i + 1}/{len(chunks)})"
+        suffix = f" ({i + 1}/{len(chunks)})" if len(chunks) > 1 else ""
+        # Reserve space for the suffix so truncation doesn't cut it off
+        title = _truncate(
+            f"⏰ 期限リマインダー: {production_name}",
+            _EMBED_TITLE_MAX - len(suffix),
+        ) + suffix
 
         payload = {
             "embeds": [
