@@ -105,10 +105,9 @@ async def get_organization(
         for m in memberships
     ]
 
-    resp = OrganizationDetailResponse.model_validate(org)
-    resp.member_count = len(members)
-    resp.members = members
-    return resp
+    org_resp = OrganizationResponse.model_validate(org)
+    org_resp.member_count = len(members)
+    return OrganizationDetailResponse(**org_resp.model_dump(), members=members)
 
 
 @router.patch("/{org_id}", response_model=OrganizationResponse)

@@ -75,6 +75,25 @@ async def list_issues(
     return [_issue_to_list_response(issue) for issue in issues]
 
 
+@router.patch("/batch-update-status", status_code=status.HTTP_204_NO_CONTENT)
+async def batch_update_status(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    body: IssueBatchStatusUpdate,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """複数課題のステータスを一括更新（ドラッグ＆ドロップ用）"""
+    await _check_org_membership(org_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
+
+    for item in body.items:
+        issue = await _get_issue_or_404(item.issue_id, production_id, db)
+        issue.status_id = item.status_id
+
+    await db.flush()
+
+
 @router.post("/", response_model=IssueDetailResponse, status_code=status.HTTP_201_CREATED)
 async def create_issue(
     org_id: uuid.UUID,
@@ -177,25 +196,6 @@ async def delete_issue(
     await _check_org_membership(org_id, current_user.id, db)
     issue = await _get_issue_or_404(issue_id, production_id, db)
     await db.delete(issue)
-
-
-@router.patch("/batch-update-status", status_code=status.HTTP_204_NO_CONTENT)
-async def batch_update_status(
-    org_id: uuid.UUID,
-    production_id: uuid.UUID,
-    body: IssueBatchStatusUpdate,
-    current_user: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """複数課題のステータスを一括更新（ドラッグ＆ドロップ用）"""
-    await _check_org_membership(org_id, current_user.id, db)
-    await _get_production_or_404(production_id, org_id, db)
-
-    for item in body.items:
-        issue = await _get_issue_or_404(item.issue_id, production_id, db)
-        issue.status_id = item.status_id
-
-    await db.flush()
 
 
 # ---- ヘルパー ----
