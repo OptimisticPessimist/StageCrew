@@ -71,6 +71,7 @@ async def update_milestone(
 ):
     """マイルストーンを更新"""
     await _check_org_admin_or_production_manager(org_id, production_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
     milestone = await _get_milestone_or_404(milestone_id, production_id, db)
 
     update_data = body.model_dump(exclude_unset=True)
@@ -91,6 +92,7 @@ async def delete_milestone(
 ):
     """マイルストーンを削除"""
     await _check_org_admin_or_production_manager(org_id, production_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
     milestone = await _get_milestone_or_404(milestone_id, production_id, db)
     await db.delete(milestone)
 

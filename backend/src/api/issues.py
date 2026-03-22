@@ -241,7 +241,6 @@ async def _load_issue_detail(issue_id: uuid.UUID, production_id: uuid.UUID, db: 
     return IssueDetailResponse(
         **resp.model_dump(),
         description=issue.description,
-        start_date=issue.start_date,
         parent_issue_id=issue.parent_issue_id,
         phase_id=issue.phase_id,
         milestone_id=issue.milestone_id,

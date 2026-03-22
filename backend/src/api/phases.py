@@ -72,6 +72,7 @@ async def update_phase(
 ):
     """公演フェーズを更新"""
     await _check_org_admin_or_production_manager(org_id, production_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
     phase = await _get_phase_or_404(phase_id, production_id, db)
 
     update_data = body.model_dump(exclude_unset=True)
@@ -92,6 +93,7 @@ async def delete_phase(
 ):
     """公演フェーズを削除"""
     await _check_org_admin_or_production_manager(org_id, production_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
     phase = await _get_phase_or_404(phase_id, production_id, db)
     await db.delete(phase)
 
