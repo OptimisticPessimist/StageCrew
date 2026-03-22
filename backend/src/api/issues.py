@@ -209,6 +209,7 @@ def _issue_to_list_response(issue: Issue) -> IssueListResponse:
         status_id=issue.status_id,
         department_id=issue.department_id,
         due_date=issue.due_date,
+        start_date=issue.start_date,
         assignees=[
             {"user_id": a.user_id, "display_name": a.user.display_name}
             for a in issue.assignees
@@ -240,7 +241,6 @@ async def _load_issue_detail(issue_id: uuid.UUID, production_id: uuid.UUID, db: 
     return IssueDetailResponse(
         **resp.model_dump(),
         description=issue.description,
-        start_date=issue.start_date,
         parent_issue_id=issue.parent_issue_id,
         phase_id=issue.phase_id,
         milestone_id=issue.milestone_id,

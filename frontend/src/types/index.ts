@@ -44,6 +44,7 @@ export interface Issue {
   status_id: string | null;
   department_id: string | null;
   due_date: string | null;
+  start_date: string | null;
   assignees: IssueAssignee[];
   labels: IssueLabel[];
   created_at: string;
@@ -177,4 +178,49 @@ export interface Invitation {
 export interface InvitationCreate {
   email?: string | null;
   org_role?: string;
+}
+
+// ---- Production Phase ----
+export interface ProductionPhase {
+  id: string;
+  production_id: string;
+  name: string;
+  sort_order: number;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+export interface PhaseCreate {
+  name: string;
+  sort_order?: number;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+export interface PhaseUpdate {
+  name?: string;
+  sort_order?: number;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+// ---- Milestone ----
+export interface Milestone {
+  id: string;
+  production_id: string;
+  name: string;
+  date: string | null;
+  color: string | null;
+}
+
+export interface MilestoneCreate {
+  name: string;
+  date?: string | null;
+  color?: string | null;
+}
+
+export interface MilestoneUpdate {
+  name?: string;
+  date?: string | null;
+  color?: string | null;
 }

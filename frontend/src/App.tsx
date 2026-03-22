@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import KanbanPage from "@/features/kanban/KanbanPage";
+import GanttPage from "@/features/gantt/GanttPage";
 import DepartmentsPage from "@/features/departments/DepartmentsPage";
 import OrgMembersPage from "@/features/members/OrgMembersPage";
 import ProductionMembersPage from "@/features/members/ProductionMembersPage";
@@ -45,6 +46,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <KanbanPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/gantt"
+          element={
+            <ProtectedRoute>
+              <GanttPage />
             </ProtectedRoute>
           }
         />

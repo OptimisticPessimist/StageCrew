@@ -101,6 +101,12 @@ export default function KanbanPage() {
             &larr; ホーム
           </Link>
           <h1 className="text-lg font-bold text-gray-900">カンバンボード</h1>
+          <Link
+            to={`/organizations/${orgId}/productions/${productionId}/gantt`}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            ガントチャート
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           {showStatusForm ? (

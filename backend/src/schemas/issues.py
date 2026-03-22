@@ -70,6 +70,7 @@ class IssueListResponse(BaseModel):
     status_id: uuid.UUID | None
     department_id: uuid.UUID | None
     due_date: datetime | None
+    start_date: datetime | None
     assignees: list[IssueAssigneeResponse] = []
     labels: list[IssueLabelResponse] = []
     created_at: datetime
