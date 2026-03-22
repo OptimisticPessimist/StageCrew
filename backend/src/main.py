@@ -1,8 +1,13 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import (
     auth,
+    comments,
     departments,
     dept_members,
     health,
@@ -17,11 +22,28 @@ from src.api import (
     statuses,
 )
 from src.core.config import settings
+from src.services.deadline_reminder import deadline_reminder_loop
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(deadline_reminder_loop())
+    logger.info("Deadline reminder background task started")
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
 
 app = FastAPI(
     title=settings.app_name,
     description="Task management SaaS for theater production groups",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -75,6 +97,11 @@ app.include_router(
     milestones.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/milestones",
     tags=["milestones"],
+)
+app.include_router(
+    comments.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/issues/{issue_id}/comments",
+    tags=["comments"],
 )
 app.include_router(
     invitations.org_router,
