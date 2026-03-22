@@ -21,8 +21,16 @@ logger = logging.getLogger(__name__)
 
 _pending: ContextVar[list[tuple[str, dict]]] = ContextVar("discord_pending")
 
-# Discord embed description limit
+# Discord embed limits
 _EMBED_DESC_MAX = 4096
+_EMBED_TITLE_MAX = 256
+
+
+def _truncate(text: str, max_len: int) -> str:
+    """Truncate *text* to *max_len* characters, appending '…' if shortened."""
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1] + "…"
 
 
 def init_webhook_queue() -> None:
@@ -127,7 +135,7 @@ def notify_issue_created(
     payload = {
         "embeds": [
             {
-                "title": f"➕ 新規課題: {title}",
+                "title": _truncate(f"➕ 新規課題: {title}", _EMBED_TITLE_MAX),
                 "color": color,
                 "fields": fields,
                 "footer": {"text": f"作成者: {creator_name}"},
@@ -160,7 +168,7 @@ def notify_issue_updated(
     payload = {
         "embeds": [
             {
-                "title": f"✏️ 課題更新: {title}",
+                "title": _truncate(f"✏️ 課題更新: {title}", _EMBED_TITLE_MAX),
                 "color": COLOR_UPDATE,
                 "fields": fields,
                 "footer": {"text": f"更新者: {updater_name}"},
@@ -182,7 +190,7 @@ def notify_issue_completed(
     payload = {
         "embeds": [
             {
-                "title": f"✅ 完了: {title}",
+                "title": _truncate(f"✅ 完了: {title}", _EMBED_TITLE_MAX),
                 "color": COLOR_COMPLETED,
                 "fields": [
                     {"name": "ステータス", "value": status_name, "inline": True},
@@ -208,7 +216,7 @@ def notify_comment_added(
     payload = {
         "embeds": [
             {
-                "title": f"💬 コメント: {issue_title}",
+                "title": _truncate(f"💬 コメント: {issue_title}", _EMBED_TITLE_MAX),
                 "color": COLOR_COMMENT,
                 "description": truncated,
                 "footer": {"text": f"投稿者: {commenter_name}"},
