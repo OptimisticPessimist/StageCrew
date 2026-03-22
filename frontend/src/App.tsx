@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import DashboardPage from "@/features/dashboard/DashboardPage";
 import KanbanPage from "@/features/kanban/KanbanPage";
 import GanttPage from "@/features/gantt/GanttPage";
 import DepartmentsPage from "@/features/departments/DepartmentsPage";
@@ -38,6 +39,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
             </ProtectedRoute>
           }
         />

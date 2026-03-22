@@ -233,3 +233,54 @@ export interface MilestoneUpdate {
   date?: string | null;
   color?: string | null;
 }
+
+// ---- Dashboard ----
+export interface DashboardIssue {
+  id: string;
+  title: string;
+  priority: string;
+  issue_type: string;
+  status_id: string | null;
+  status_name: string | null;
+  status_color: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  due_date: string | null;
+}
+
+export interface DepartmentProgress {
+  department_id: string;
+  department_name: string;
+  department_color: string | null;
+  total: number;
+  completed: number;
+}
+
+export interface StatusCount {
+  status_id: string | null;
+  status_name: string;
+  status_color: string | null;
+  count: number;
+}
+
+export interface ProgressSummary {
+  total_issues: number;
+  completed_issues: number;
+  completion_percentage: number;
+  current_phase: string | null;
+  days_to_opening: number | null;
+  days_to_closing: number | null;
+  by_department: DepartmentProgress[];
+  by_status: StatusCount[];
+}
+
+export interface DeadlineWarnings {
+  overdue: DashboardIssue[];
+  near_deadline: DashboardIssue[];
+}
+
+export interface DashboardResponse {
+  progress: ProgressSummary;
+  my_tasks: DashboardIssue[];
+  deadline_warnings: DeadlineWarnings;
+}

@@ -71,6 +71,12 @@ export default function GanttPage() {
           </Link>
           <h1 className="text-lg font-bold text-gray-900">ガントチャート</h1>
           <Link
+            to={`/organizations/${orgId}/productions/${productionId}/dashboard`}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            ダッシュボード
+          </Link>
+          <Link
             to={`/organizations/${orgId}/productions/${productionId}/board`}
             className="text-sm text-indigo-600 hover:text-indigo-800"
           >

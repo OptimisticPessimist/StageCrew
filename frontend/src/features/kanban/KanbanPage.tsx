@@ -103,6 +103,12 @@ export default function KanbanPage() {
           </Link>
           <h1 className="text-lg font-bold text-gray-900">カンバンボード</h1>
           <Link
+            to={`/organizations/${orgId}/productions/${productionId}/dashboard`}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            ダッシュボード
+          </Link>
+          <Link
             to={`/organizations/${orgId}/productions/${productionId}/gantt`}
             className="text-sm text-indigo-600 hover:text-indigo-800"
           >
