@@ -3,10 +3,8 @@
 import uuid
 
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Organization, OrganizationMembership, User
-from tests.conftest import OTHER_USER_ID, TEST_USER_ID
+from src.db.models import OrganizationMembership, User
 
 
 def _members_url(org_id, suffix=""):

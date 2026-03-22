@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db.base import get_db
-from src.db.models import Organization, OrganizationMembership, User
+from src.db.models import OrganizationMembership, User
 from src.dependencies.auth import CurrentUser, get_current_user
 from src.schemas.members import OrgMemberAdd, OrgMemberUpdate
 from src.schemas.organizations import OrganizationMemberResponse
@@ -165,7 +165,9 @@ async def _get_membership_or_404(
 
 async def _count_owners(org_id: uuid.UUID, db: AsyncSession) -> int:
     result = await db.execute(
-        select(func.count()).select_from(OrganizationMembership).where(
+        select(func.count())
+        .select_from(OrganizationMembership)
+        .where(
             OrganizationMembership.organization_id == org_id,
             OrganizationMembership.org_role == "owner",
         )

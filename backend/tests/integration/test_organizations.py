@@ -3,10 +3,8 @@
 import uuid
 
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Organization, OrganizationMembership, User
-
+from src.db.models import User
 
 # ---- 一覧 ----
 
@@ -81,9 +79,7 @@ async def test_update_organization_as_owner(client: AsyncClient, org_owner):
     assert resp.json()["name"] == "更新された団体"
 
 
-async def test_update_organization_as_member_forbidden(
-    client_as_other: AsyncClient, org_owner, org_with_member
-):
+async def test_update_organization_as_member_forbidden(client_as_other: AsyncClient, org_owner, org_with_member):
     org, _ = org_owner
     resp = await client_as_other.patch(f"/api/organizations/{org.id}", json={"name": "拒否"})
     assert resp.status_code == 403
@@ -98,9 +94,7 @@ async def test_delete_organization_as_owner(client: AsyncClient, org_owner):
     assert resp.status_code == 204
 
 
-async def test_delete_organization_as_member_forbidden(
-    client_as_other: AsyncClient, org_owner, org_with_member
-):
+async def test_delete_organization_as_member_forbidden(client_as_other: AsyncClient, org_owner, org_with_member):
     org, _ = org_owner
     resp = await client_as_other.delete(f"/api/organizations/{org.id}")
     assert resp.status_code == 403

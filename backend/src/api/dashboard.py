@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -11,10 +11,8 @@ from src.db.base import get_db
 from src.db.models import (
     Department,
     Issue,
-    IssueAssignee,
     OrganizationMembership,
     Production,
-    StatusDefinition,
 )
 from src.dependencies.auth import CurrentUser, get_current_user
 from src.schemas.dashboard import (
@@ -57,13 +55,11 @@ async def get_dashboard(
 
     # 部門一覧を取得（issue が 0 件の部門も表示するため）
     dept_result = await db.execute(
-        select(Department)
-        .where(Department.production_id == production_id)
-        .order_by(Department.sort_order)
+        select(Department).where(Department.production_id == production_id).order_by(Department.sort_order)
     )
     all_departments = list(dept_result.scalars().all())
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     near_deadline_threshold = now + timedelta(days=3)
 
     # --- 集計 ---
@@ -108,12 +104,13 @@ async def get_dashboard(
                 near_deadline.append(_to_dashboard_issue(issue))
 
     # ソート: my_tasks → priority(high>medium>low), due_date ASC (nulls last)
-    my_tasks.sort(key=lambda t: (PRIORITY_ORDER.get(t.priority, 9), t.due_date or datetime.max.replace(tzinfo=timezone.utc)))
-    overdue.sort(key=lambda t: t.due_date or datetime.min.replace(tzinfo=timezone.utc))
-    near_deadline.sort(key=lambda t: t.due_date or datetime.max.replace(tzinfo=timezone.utc))
+    _max_dt = datetime.max.replace(tzinfo=UTC)
+    _min_dt = datetime.min.replace(tzinfo=UTC)
+    my_tasks.sort(key=lambda t: (PRIORITY_ORDER.get(t.priority, 9), t.due_date or _max_dt))
+    overdue.sort(key=lambda t: t.due_date or _min_dt)
+    near_deadline.sort(key=lambda t: t.due_date or _max_dt)
 
     # 部門別進捗を組み立て
-    dept_map = {d.id: d for d in all_departments}
     by_department = []
     for dept in all_departments:
         stats = dept_stats.get(dept.id, {"total": 0, "completed": 0})
@@ -192,13 +189,9 @@ def _to_dashboard_issue(issue: Issue) -> DashboardIssue:
     )
 
 
-async def _get_production_or_404(
-    production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession
-) -> Production:
+async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession) -> Production:
     result = await db.execute(
-        select(Production).where(
-            Production.id == production_id, Production.organization_id == org_id
-        )
+        select(Production).where(Production.id == production_id, Production.organization_id == org_id)
     )
     production = result.scalar_one_or_none()
     if production is None:
@@ -206,9 +199,7 @@ async def _get_production_or_404(
     return production
 
 
-async def _check_org_membership(
-    org_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
-) -> None:
+async def _check_org_membership(org_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> None:
     result = await db.execute(
         select(OrganizationMembership).where(
             OrganizationMembership.organization_id == org_id,

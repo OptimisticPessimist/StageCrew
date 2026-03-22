@@ -1,7 +1,7 @@
 """Discord OAuth2 authentication endpoint tests."""
 
-from urllib.parse import parse_qs, urlparse
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import parse_qs, urlparse
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

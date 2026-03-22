@@ -5,8 +5,7 @@ import uuid
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Organization, OrganizationMembership, Production, ProductionMembership, User
-from tests.conftest import OTHER_USER_ID
+from src.db.models import ProductionMembership, User
 
 
 def _pm_url(org_id, prod_id, suffix=""):
@@ -21,9 +20,7 @@ async def test_list_production_members(client: AsyncClient, production):
     assert len(data) >= 1
 
 
-async def test_add_production_member(
-    client: AsyncClient, production, other_user: User, org_with_member
-):
+async def test_add_production_member(client: AsyncClient, production, other_user: User, org_with_member):
     prod, _ = production
     resp = await client.post(
         _pm_url(prod.organization_id, prod.id, "/"),

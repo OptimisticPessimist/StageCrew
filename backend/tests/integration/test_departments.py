@@ -3,9 +3,8 @@
 import uuid
 
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Department, Organization, Production, ProductionMembership, StaffRole, User
+from src.db.models import Department, StaffRole
 
 
 def _dept_url(org_id, prod_id, suffix=""):
@@ -54,9 +53,7 @@ async def test_create_department_with_staff_roles(client: AsyncClient, productio
     assert len(data["staff_roles"]) == 2
 
 
-async def test_create_department_not_manager(
-    client_as_other: AsyncClient, production, org_with_member
-):
+async def test_create_department_not_manager(client_as_other: AsyncClient, production, org_with_member):
     prod, _ = production
     resp = await client_as_other.post(
         _dept_url(prod.organization_id, prod.id, "/"),
@@ -131,9 +128,7 @@ async def test_create_staff_role(client: AsyncClient, production, department: De
     assert resp.json()["name"] == "新ロール"
 
 
-async def test_update_staff_role(
-    client: AsyncClient, production, department: Department, staff_role: StaffRole
-):
+async def test_update_staff_role(client: AsyncClient, production, department: Department, staff_role: StaffRole):
     prod, _ = production
     resp = await client.patch(
         _role_url(prod.organization_id, prod.id, department.id, f"/{staff_role.id}"),
@@ -143,13 +138,9 @@ async def test_update_staff_role(
     assert resp.json()["name"] == "更新ロール"
 
 
-async def test_delete_staff_role(
-    client: AsyncClient, production, department: Department, staff_role: StaffRole
-):
+async def test_delete_staff_role(client: AsyncClient, production, department: Department, staff_role: StaffRole):
     prod, _ = production
-    resp = await client.delete(
-        _role_url(prod.organization_id, prod.id, department.id, f"/{staff_role.id}")
-    )
+    resp = await client.delete(_role_url(prod.organization_id, prod.id, department.id, f"/{staff_role.id}"))
     assert resp.status_code == 204
 
 

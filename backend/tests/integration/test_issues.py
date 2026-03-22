@@ -10,10 +10,6 @@ from src.db.models import (
     Issue,
     IssueAssignee,
     Label,
-    Organization,
-    OrganizationMembership,
-    Production,
-    ProductionMembership,
     StatusDefinition,
     User,
 )
@@ -131,9 +127,7 @@ async def test_update_issue_assignees(
     assert assignees[0]["user_id"] == str(other_user.id)
 
 
-async def test_update_issue_labels(
-    client: AsyncClient, production, db_session: AsyncSession, test_user: User
-):
+async def test_update_issue_labels(client: AsyncClient, production, db_session: AsyncSession, test_user: User):
     prod, _ = production
     label = Label(production_id=prod.id, name="バグ", color="#FF0000")
     db_session.add(label)
@@ -169,9 +163,7 @@ async def test_delete_issue(client: AsyncClient, production, db_session: AsyncSe
 # ---- フィルタ ----
 
 
-async def test_list_issues_filter_by_type(
-    client: AsyncClient, production, db_session: AsyncSession, test_user: User
-):
+async def test_list_issues_filter_by_type(client: AsyncClient, production, db_session: AsyncSession, test_user: User):
     prod, _ = production
     db_session.add(Issue(production_id=prod.id, title="タスク", issue_type="task", created_by=test_user.id))
     db_session.add(Issue(production_id=prod.id, title="バグ", issue_type="bug", created_by=test_user.id))
@@ -221,9 +213,7 @@ async def test_list_issues_filter_by_department(
     client: AsyncClient, production, department: Department, db_session: AsyncSession, test_user: User
 ):
     prod, _ = production
-    db_session.add(
-        Issue(production_id=prod.id, title="部門付き", department_id=department.id, created_by=test_user.id)
-    )
+    db_session.add(Issue(production_id=prod.id, title="部門付き", department_id=department.id, created_by=test_user.id))
     await db_session.flush()
 
     resp = await client.get(

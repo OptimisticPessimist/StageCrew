@@ -8,10 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import (
     Department,
     DepartmentMembership,
-    Production,
-    ProductionMembership,
     StaffRole,
-    User,
 )
 
 
@@ -26,9 +23,7 @@ async def test_list_dept_members(client: AsyncClient, production, department: De
     assert isinstance(resp.json(), list)
 
 
-async def test_add_dept_member(
-    client: AsyncClient, production, department: Department
-):
+async def test_add_dept_member(client: AsyncClient, production, department: Department):
     prod, pm = production
     resp = await client.post(
         _dm_url(prod.organization_id, prod.id, department.id, "/"),
@@ -39,9 +34,7 @@ async def test_add_dept_member(
     assert data["department_id"] == str(department.id)
 
 
-async def test_add_dept_member_invalid_production_membership(
-    client: AsyncClient, production, department: Department
-):
+async def test_add_dept_member_invalid_production_membership(client: AsyncClient, production, department: Department):
     prod, _ = production
     resp = await client.post(
         _dm_url(prod.organization_id, prod.id, department.id, "/"),
@@ -84,9 +77,7 @@ async def test_add_dept_member_with_staff_role(
     assert resp.json()["staff_role_id"] == str(staff_role.id)
 
 
-async def test_add_dept_member_invalid_staff_role(
-    client: AsyncClient, production, department: Department
-):
+async def test_add_dept_member_invalid_staff_role(client: AsyncClient, production, department: Department):
     prod, pm = production
     resp = await client.post(
         _dm_url(prod.organization_id, prod.id, department.id, "/"),
@@ -109,9 +100,7 @@ async def test_add_dept_member_not_manager(
     assert resp.status_code == 403
 
 
-async def test_update_dept_member(
-    client: AsyncClient, production, department: Department, db_session: AsyncSession
-):
+async def test_update_dept_member(client: AsyncClient, production, department: Department, db_session: AsyncSession):
     prod, pm = production
     dm = DepartmentMembership(
         production_membership_id=pm.id,
@@ -129,9 +118,7 @@ async def test_update_dept_member(
     assert "task.create" in resp.json()["capabilities"]
 
 
-async def test_remove_dept_member(
-    client: AsyncClient, production, department: Department, db_session: AsyncSession
-):
+async def test_remove_dept_member(client: AsyncClient, production, department: Department, db_session: AsyncSession):
     prod, pm = production
     dm = DepartmentMembership(
         production_membership_id=pm.id,

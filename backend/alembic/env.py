@@ -1,13 +1,13 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from alembic import context
 from src.core.config import settings
-from src.db.base import Base
 from src.db import models  # noqa: F401 - ensure models are imported for autogenerate
+from src.db.base import Base
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

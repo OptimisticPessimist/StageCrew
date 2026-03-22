@@ -1,6 +1,6 @@
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -79,7 +79,7 @@ async def create_invitation(
         email=body.email,
         token=secrets.token_urlsafe(32),
         org_role=body.org_role,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db.add(invitation)
     await db.flush()
@@ -132,9 +132,7 @@ async def accept_invitation(
     db: AsyncSession = Depends(get_db),
 ):
     """招待トークンで団体に参加"""
-    result = await db.execute(
-        select(Invitation).where(Invitation.token == token)
-    )
+    result = await db.execute(select(Invitation).where(Invitation.token == token))
     invitation = result.scalar_one_or_none()
     if invitation is None:
         raise HTTPException(status_code=404, detail="招待が見つかりません")
@@ -142,7 +140,7 @@ async def accept_invitation(
     if invitation.status != "pending":
         raise HTTPException(status_code=400, detail="この招待は既に使用済みまたは期限切れです")
 
-    if invitation.expires_at < datetime.now(timezone.utc):
+    if invitation.expires_at < datetime.now(UTC):
         invitation.status = "expired"
         await db.flush()
         raise HTTPException(status_code=400, detail="招待の有効期限が切れています")

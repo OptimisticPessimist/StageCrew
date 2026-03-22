@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.base import get_db
 from src.db.models import (
-    Organization,
     OrganizationMembership,
     Production,
     ProductionMembership,
@@ -148,6 +147,7 @@ async def delete_production(
 
 
 # ---- ヘルパー ----
+
 
 async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession) -> Production:
     result = await db.execute(

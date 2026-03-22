@@ -1,7 +1,7 @@
 """Discord OAuth2 authentication endpoints."""
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
@@ -28,7 +28,7 @@ OAUTH_STATE_MAX_AGE = 600
 
 def _create_access_token(user_id: str, discord_id: str) -> str:
     """Create a JWT access token for the authenticated user."""
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.jwt_access_token_expire_minutes)
     payload = {"sub": user_id, "discord_id": discord_id, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
@@ -105,11 +105,7 @@ async def discord_callback(
     username = discord_user.get("global_name") or discord_user["username"]
     email = discord_user.get("email")
     avatar_hash = discord_user.get("avatar")
-    avatar_url = (
-        f"https://cdn.discordapp.com/avatars/{discord_id}/{avatar_hash}.png"
-        if avatar_hash
-        else None
-    )
+    avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{avatar_hash}.png" if avatar_hash else None
 
     result = await db.execute(select(User).where(User.discord_id == discord_id))
     user = result.scalar_one_or_none()

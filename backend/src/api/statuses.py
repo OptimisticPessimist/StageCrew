@@ -97,6 +97,7 @@ async def delete_status(
 
 # ---- ヘルパー ----
 
+
 async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession) -> Production:
     result = await db.execute(
         select(Production).where(Production.id == production_id, Production.organization_id == org_id)

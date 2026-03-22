@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db.base import get_db
-from src.db.models import Organization, OrganizationMembership, User
+from src.db.models import Organization, OrganizationMembership
 from src.dependencies.auth import CurrentUser, get_current_user
 from src.schemas.organizations import (
     OrganizationCreate,
@@ -36,8 +36,10 @@ async def list_organizations(
 
     responses = []
     for org in orgs:
-        count_stmt = select(func.count()).select_from(OrganizationMembership).where(
-            OrganizationMembership.organization_id == org.id
+        count_stmt = (
+            select(func.count())
+            .select_from(OrganizationMembership)
+            .where(OrganizationMembership.organization_id == org.id)
         )
         count_result = await db.execute(count_stmt)
         member_count = count_result.scalar_one()
@@ -127,8 +129,8 @@ async def update_organization(
     await db.flush()
     await db.refresh(org)
 
-    count_stmt = select(func.count()).select_from(OrganizationMembership).where(
-        OrganizationMembership.organization_id == org_id
+    count_stmt = (
+        select(func.count()).select_from(OrganizationMembership).where(OrganizationMembership.organization_id == org_id)
     )
     count_result = await db.execute(count_stmt)
     resp = OrganizationResponse.model_validate(org)
@@ -149,6 +151,7 @@ async def delete_organization(
 
 
 # ---- ヘルパー ----
+
 
 async def _get_org_or_404(org_id: uuid.UUID, db: AsyncSession) -> Organization:
     result = await db.execute(select(Organization).where(Organization.id == org_id))

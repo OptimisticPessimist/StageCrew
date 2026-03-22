@@ -60,14 +60,14 @@ def discard_webhook_queue() -> None:
 # ---- Color-blind friendly palette (Wong palette) ----
 
 PRIORITY_COLORS = {
-    "high": 0xD55E00,    # vermillion
+    "high": 0xD55E00,  # vermillion
     "medium": 0xE69F00,  # amber
-    "low": 0x0072B2,     # blue
+    "low": 0x0072B2,  # blue
 }
-COLOR_UPDATE = 0x56B4E9       # sky blue
-COLOR_COMPLETED = 0x009E73    # bluish green
-COLOR_COMMENT = 0xCC79A7      # reddish purple
-COLOR_REMINDER = 0xD55E00     # vermillion
+COLOR_UPDATE = 0x56B4E9  # sky blue
+COLOR_COMPLETED = 0x009E73  # bluish green
+COLOR_COMMENT = 0xCC79A7  # reddish purple
+COLOR_REMINDER = 0xD55E00  # vermillion
 
 ISSUE_TYPE_LABELS = {
     "task": "タスク",
@@ -160,10 +160,7 @@ def notify_issue_updated(
     if not changes:
         return
 
-    fields = [
-        {"name": label, "value": f"{old} → {new}", "inline": False}
-        for label, (old, new) in changes.items()
-    ]
+    fields = [{"name": label, "value": f"{old} → {new}", "inline": False} for label, (old, new) in changes.items()]
 
     payload = {
         "embeds": [
@@ -283,10 +280,13 @@ def notify_deadline_reminder(
     for i, chunk in enumerate(chunks):
         suffix = f" ({i + 1}/{len(chunks)})" if len(chunks) > 1 else ""
         # Reserve space for the suffix so truncation doesn't cut it off
-        title = _truncate(
-            f"⏰ 期限リマインダー: {production_name}",
-            _EMBED_TITLE_MAX - len(suffix),
-        ) + suffix
+        title = (
+            _truncate(
+                f"⏰ 期限リマインダー: {production_name}",
+                _EMBED_TITLE_MAX - len(suffix),
+            )
+            + suffix
+        )
 
         payload = {
             "embeds": [
