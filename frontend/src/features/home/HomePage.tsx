@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useOrganizations } from "./hooks/useOrganizations";
 import { useProductions } from "./hooks/useProductions";
 import { useHome } from "./hooks/useHome";
 import { useSelectedOrg } from "./hooks/useSelectedOrg";
 import { parseLocalDate } from "@/features/production/CountdownBadge";
-import type { HomeIssue, ProductionListItem } from "@/types";
+import { api } from "@/api/client";
+import type { HomeIssue, ProductionListItem, OrganizationSummary } from "@/types";
 
 const PRIORITY_LABELS: Record<string, string> = {
   high: "高",
@@ -328,6 +331,74 @@ function ProductionSection({ orgId }: { orgId: string }) {
   );
 }
 
+// ---- Create Organization Form ----
+function CreateOrganizationForm() {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const queryClient = useQueryClient();
+
+  const createOrg = useMutation({
+    mutationFn: (data: { name: string; description?: string }) =>
+      api.post<OrganizationSummary>("/organizations", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      setName("");
+      setDescription("");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    createOrg.mutate({
+      name: name.trim(),
+      description: description.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-lg border p-6 max-w-md mx-auto">
+      <h2 className="text-base font-bold text-gray-900 mb-4">
+        団体を作成
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            団体名
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="例: 劇団ステージクルー"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            説明（任意）
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="団体の説明"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!name.trim() || createOrg.isPending}
+          className="w-full bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {createOrg.isPending ? "作成中..." : "団体を作成"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ---- Main Page ----
 export default function HomePage() {
   const { user, logout } = useAuth();
@@ -369,21 +440,28 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-        {orgsLoading || homeLoading ? (
+        {orgsLoading ? (
           <p className="text-center text-gray-500">読み込み中...</p>
         ) : !organizations || organizations.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500">所属する団体がありません</p>
+          <div className="py-16 space-y-8">
+            <p className="text-center text-gray-500">
+              所属する団体がありません
+            </p>
+            <CreateOrganizationForm />
           </div>
         ) : (
           <>
             {/* マイタスク（全公演横断） */}
-            {homeData && <MyTasksSection tasks={homeData.my_tasks} />}
-
-            {/* 期限警告（全公演横断） */}
-            {homeData && (
-              <DeadlineSection warnings={homeData.deadline_warnings} />
-            )}
+            {homeLoading ? (
+              <div className="bg-white rounded-lg border p-6">
+                <p className="text-sm text-gray-400">タスクを読み込み中...</p>
+              </div>
+            ) : homeData ? (
+              <>
+                <MyTasksSection tasks={homeData.my_tasks} />
+                <DeadlineSection warnings={homeData.deadline_warnings} />
+              </>
+            ) : null}
 
             {/* 選択中の団体の公演一覧 */}
             {selectedOrg && (
