@@ -29,7 +29,8 @@ export default function GanttBar({
   const end = new Date(issue.due_date!);
 
   const leftPx = diffDays(timelineStart, start) * dayWidth;
-  const durationDays = Math.max(diffDays(start, end), 1);
+  // +1 to treat due_date as inclusive (3/1〜3/2 = 2 days)
+  const durationDays = Math.max(diffDays(start, end) + 1, 1);
   const widthPx = durationDays * dayWidth;
 
   const bgColor = color ?? "#6366f1";

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
 import type { Issue, ProductionPhase, Milestone } from "@/types";
 import type { DepartmentGroup } from "./hooks/useGanttData";
 import GanttTimelineHeader from "./GanttTimelineHeader";
@@ -21,6 +21,8 @@ function diffDays(a: Date, b: Date): number {
 const ROW_HEIGHT = 36;
 const DEPT_HEADER_HEIGHT = 28;
 const LABEL_WIDTH = 200;
+const MIN_CONTENT_HEIGHT = 200;
+const HEADER_HEIGHT = 48; // 2 rows × 24px
 
 export default function GanttChart({
   groups,
@@ -31,7 +33,10 @@ export default function GanttChart({
   dayWidth,
   onIssueClick,
 }: GanttChartProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const isSyncing = useRef(false);
+
   const totalDays = Math.ceil(diffDays(timelineStart, timelineEnd));
   const timelineWidth = totalDays * dayWidth;
 
@@ -41,57 +46,85 @@ export default function GanttChart({
   const showToday = todayOffset >= 0 && todayOffset <= timelineWidth;
 
   // Calculate total rows for background elements
-  let totalContentHeight = 0;
+  let issueContentHeight = 0;
   for (const group of groups) {
-    totalContentHeight += DEPT_HEADER_HEIGHT + group.issues.length * ROW_HEIGHT;
+    issueContentHeight += DEPT_HEADER_HEIGHT + group.issues.length * ROW_HEIGHT;
   }
+  const totalContentHeight = Math.max(issueContentHeight, MIN_CONTENT_HEIGHT);
+
+  // Synchronize vertical scroll between label column and timeline
+  const handleLabelScroll = useCallback(() => {
+    if (isSyncing.current) return;
+    isSyncing.current = true;
+    if (labelRef.current && timelineRef.current) {
+      timelineRef.current.scrollTop = labelRef.current.scrollTop;
+    }
+    isSyncing.current = false;
+  }, []);
+
+  const handleTimelineScroll = useCallback(() => {
+    if (isSyncing.current) return;
+    isSyncing.current = true;
+    if (labelRef.current && timelineRef.current) {
+      labelRef.current.scrollTop = timelineRef.current.scrollTop;
+    }
+    isSyncing.current = false;
+  }, []);
 
   return (
     <div className="flex h-full border border-gray-300 rounded-lg overflow-hidden bg-white">
       {/* Left labels column */}
       <div
-        className="shrink-0 border-r border-gray-300 bg-gray-50 overflow-y-auto"
+        ref={labelRef}
+        onScroll={handleLabelScroll}
+        className="shrink-0 border-r border-gray-300 bg-gray-50 overflow-y-auto overflow-x-hidden"
         style={{ width: LABEL_WIDTH }}
       >
         {/* Header spacer */}
-        <div className="h-12 border-b border-gray-300" />
-        {groups.map((group) => (
-          <div key={group.department?.id ?? "__none"}>
-            {/* Department header */}
-            <div
-              className="flex items-center px-3 text-xs font-bold text-gray-700 border-b border-gray-200"
-              style={{
-                height: DEPT_HEADER_HEIGHT,
-                backgroundColor: group.department?.color
-                  ? group.department.color + "22"
-                  : "#f9fafb",
-              }}
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-full mr-2 shrink-0"
-                style={{
-                  backgroundColor: group.department?.color ?? "#9ca3af",
-                }}
-              />
-              {group.department?.name ?? "未分類"}
-            </div>
-            {/* Issue rows */}
-            {group.issues.map((issue) => (
+        <div className="border-b border-gray-300" style={{ height: HEADER_HEIGHT }} />
+        <div style={{ minHeight: totalContentHeight }}>
+          {groups.map((group) => (
+            <div key={group.department?.id ?? "__none"}>
+              {/* Department header */}
               <div
-                key={issue.id}
-                className="flex items-center px-3 text-xs text-gray-600 border-b border-gray-100 truncate cursor-pointer hover:bg-gray-100"
-                style={{ height: ROW_HEIGHT }}
-                onClick={() => onIssueClick(issue)}
+                className="flex items-center px-3 text-xs font-bold text-gray-700 border-b border-gray-200"
+                style={{
+                  height: DEPT_HEADER_HEIGHT,
+                  backgroundColor: group.department?.color
+                    ? group.department.color + "22"
+                    : "#f9fafb",
+                }}
               >
-                {issue.title}
+                <span
+                  className="w-2.5 h-2.5 rounded-full mr-2 shrink-0"
+                  style={{
+                    backgroundColor: group.department?.color ?? "#9ca3af",
+                  }}
+                />
+                {group.department?.name ?? "未分類"}
               </div>
-            ))}
-          </div>
-        ))}
+              {/* Issue rows */}
+              {group.issues.map((issue) => (
+                <div
+                  key={issue.id}
+                  className="flex items-center px-3 text-xs text-gray-600 border-b border-gray-100 truncate cursor-pointer hover:bg-gray-100"
+                  style={{ height: ROW_HEIGHT }}
+                  onClick={() => onIssueClick(issue)}
+                >
+                  {issue.title}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Right timeline area */}
-      <div className="flex-1 overflow-auto" ref={scrollRef}>
+      <div
+        ref={timelineRef}
+        onScroll={handleTimelineScroll}
+        className="flex-1 overflow-auto"
+      >
         <div style={{ width: timelineWidth, minHeight: "100%" }} className="relative">
           {/* Timeline header */}
           <GanttTimelineHeader
