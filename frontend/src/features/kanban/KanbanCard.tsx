@@ -23,13 +23,14 @@ const TYPE_LABELS: Record<string, string> = {
 interface Props {
   issue: Issue;
   index: number;
+  isClosed: boolean;
   onClick: (issue: Issue) => void;
 }
 
-export default function KanbanCard({ issue, index, onClick }: Props) {
+export default function KanbanCard({ issue, index, isClosed, onClick }: Props) {
   const priorityClass = PRIORITY_COLORS[issue.priority] ?? "bg-gray-100 text-gray-700";
   const isOverdue =
-    issue.due_date && new Date(issue.due_date) < new Date();
+    !isClosed && issue.due_date && new Date(issue.due_date) < new Date();
 
   return (
     <Draggable draggableId={issue.id} index={index}>
@@ -39,9 +40,9 @@ export default function KanbanCard({ issue, index, onClick }: Props) {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={() => onClick(issue)}
-          className={`rounded-lg border bg-white p-3 mb-2 cursor-pointer transition-shadow ${
+          className={`rounded-lg border p-3 mb-2 cursor-pointer transition-shadow ${
             snapshot.isDragging ? "shadow-lg ring-2 ring-indigo-300" : "shadow-sm hover:shadow-md"
-          }`}
+          } ${isClosed ? "bg-gray-50 opacity-70" : "bg-white"}`}
         >
           <div className="flex items-start gap-2 mb-1">
             <span className="text-xs text-gray-400">
@@ -52,7 +53,14 @@ export default function KanbanCard({ issue, index, onClick }: Props) {
             </span>
           </div>
 
-          <h4 className="text-sm font-medium text-gray-900 leading-snug mb-2">
+          <h4
+            className={`text-sm font-medium leading-snug mb-2 ${
+              isClosed
+                ? "text-gray-400 line-through"
+                : "text-gray-900"
+            }`}
+          >
+            {isClosed && <span className="mr-1">✓</span>}
             {issue.title}
           </h4>
 

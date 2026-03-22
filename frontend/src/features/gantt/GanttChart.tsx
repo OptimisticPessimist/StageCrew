@@ -1,5 +1,5 @@
-import { useRef, useCallback } from "react";
-import type { Issue, ProductionPhase, Milestone } from "@/types";
+import { useRef, useCallback, useMemo } from "react";
+import type { Issue, ProductionPhase, Milestone, StatusDefinition } from "@/types";
 import type { DepartmentGroup } from "./hooks/useGanttData";
 import GanttTimelineHeader from "./GanttTimelineHeader";
 import GanttBar from "./GanttBar";
@@ -8,6 +8,7 @@ interface GanttChartProps {
   groups: DepartmentGroup[];
   phases: ProductionPhase[];
   milestones: Milestone[];
+  statuses: StatusDefinition[];
   timelineStart: Date;
   timelineEnd: Date;
   dayWidth: number;
@@ -29,6 +30,7 @@ export default function GanttChart({
   groups,
   phases,
   milestones,
+  statuses,
   timelineStart,
   timelineEnd,
   dayWidth,
@@ -38,6 +40,11 @@ export default function GanttChart({
   const labelRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false);
+
+  const closedStatusIds = useMemo(
+    () => new Set(statuses.filter((s) => s.is_closed).map((s) => s.id)),
+    [statuses],
+  );
 
   const totalDays = Math.ceil(diffDays(timelineStart, timelineEnd));
   const timelineWidth = totalDays * dayWidth;
@@ -110,16 +117,22 @@ export default function GanttChart({
                 {group.department?.name ?? "未分類"}
               </div>
               {/* Issue rows */}
-              {group.issues.map((issue) => (
-                <div
-                  key={issue.id}
-                  className="flex items-center px-3 text-xs text-gray-600 border-b border-gray-100 truncate cursor-pointer hover:bg-gray-100"
-                  style={{ height: ROW_HEIGHT }}
-                  onClick={() => onIssueClick(issue)}
-                >
-                  {issue.title}
-                </div>
-              ))}
+              {group.issues.map((issue) => {
+                const isClosed = issue.status_id != null && closedStatusIds.has(issue.status_id);
+                return (
+                  <div
+                    key={issue.id}
+                    className={`flex items-center px-3 text-xs border-b border-gray-100 truncate cursor-pointer hover:bg-gray-100 ${
+                      isClosed ? "text-gray-400 line-through" : "text-gray-600"
+                    }`}
+                    style={{ height: ROW_HEIGHT }}
+                    onClick={() => onIssueClick(issue)}
+                  >
+                    {isClosed && <span className="mr-1 no-underline">✓</span>}
+                    {issue.title}
+                  </div>
+                );
+              })}
             </div>
           ))}
         </div>
@@ -243,6 +256,7 @@ export default function GanttChart({
                 yOffset += DEPT_HEADER_HEIGHT;
                 const issueElements = group.issues.map((issue, idx) => {
                   const rowY = groupY + DEPT_HEADER_HEIGHT + idx * ROW_HEIGHT;
+                  const isClosed = issue.status_id != null && closedStatusIds.has(issue.status_id);
                   return (
                     <div
                       key={issue.id}
@@ -254,6 +268,7 @@ export default function GanttChart({
                         timelineStart={timelineStart}
                         dayWidth={dayWidth}
                         color={group.department?.color ?? null}
+                        isClosed={isClosed}
                         onClick={() => onIssueClick(issue)}
                       />
                     </div>

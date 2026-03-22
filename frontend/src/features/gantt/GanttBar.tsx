@@ -11,6 +11,7 @@ interface GanttBarProps {
   timelineStart: Date;
   dayWidth: number;
   color: string | null;
+  isClosed?: boolean;
   onClick: () => void;
 }
 
@@ -23,6 +24,7 @@ export default function GanttBar({
   timelineStart,
   dayWidth,
   color,
+  isClosed = false,
   onClick,
 }: GanttBarProps) {
   const start = new Date(issue.start_date!);
@@ -34,20 +36,29 @@ export default function GanttBar({
   const widthPx = durationDays * dayWidth;
 
   const bgColor = color ?? "#6366f1";
-  const priorityBorder = PRIORITY_BORDER[issue.priority] ?? "border-l-gray-400";
+  const priorityBorder = isClosed
+    ? "border-l-gray-400"
+    : (PRIORITY_BORDER[issue.priority] ?? "border-l-gray-400");
 
   return (
     <div
-      className={`absolute top-1 h-7 rounded cursor-pointer border-l-4 ${priorityBorder} flex items-center overflow-hidden hover:opacity-80 transition-opacity group`}
+      className={`absolute top-1 h-7 rounded cursor-pointer border-l-4 ${priorityBorder} flex items-center overflow-hidden hover:opacity-80 transition-opacity group ${
+        isClosed ? "opacity-40" : ""
+      }`}
       style={{
         left: leftPx,
         width: Math.max(widthPx, dayWidth * 0.5),
-        backgroundColor: bgColor + "cc",
+        backgroundColor: isClosed ? "#9ca3af" : bgColor + "cc",
       }}
       onClick={onClick}
-      title={`${issue.title}\n${start.toLocaleDateString("ja-JP")} 〜 ${end.toLocaleDateString("ja-JP")}`}
+      title={`${isClosed ? "✓ " : ""}${issue.title}\n${start.toLocaleDateString("ja-JP")} 〜 ${end.toLocaleDateString("ja-JP")}`}
     >
-      <span className="text-[11px] text-white font-medium px-1.5 truncate drop-shadow-sm">
+      <span
+        className={`text-[11px] font-medium px-1.5 truncate drop-shadow-sm ${
+          isClosed ? "text-gray-200 line-through" : "text-white"
+        }`}
+      >
+        {isClosed && "✓ "}
         {issue.title}
       </span>
     </div>

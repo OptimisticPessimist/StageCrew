@@ -310,23 +310,114 @@ function ProductionCard({
   );
 }
 
+// ---- Create Production Form ----
+function CreateProductionForm({
+  orgId,
+  onCancel,
+}: {
+  orgId: string;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [productionType, setProductionType] = useState("physical");
+  const queryClient = useQueryClient();
+
+  const createProd = useMutation({
+    mutationFn: (data: { name: string; production_type: string }) =>
+      api.post<ProductionListItem>(
+        `/organizations/${orgId}/productions`,
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["productions", orgId] });
+      setName("");
+      onCancel();
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    createProd.mutate({ name: name.trim(), production_type: productionType });
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="border rounded-lg p-4 bg-gray-50 space-y-3"
+    >
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="公演名"
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+          required
+          autoFocus
+        />
+        <select
+          value={productionType}
+          onChange={(e) => setProductionType(e.target.value)}
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+        >
+          <option value="physical">物理演劇</option>
+          <option value="vr">VR演劇</option>
+          <option value="hybrid">ハイブリッド</option>
+        </select>
+      </div>
+      <div className="flex gap-2 justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-sm px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+        >
+          キャンセル
+        </button>
+        <button
+          type="submit"
+          disabled={!name.trim() || createProd.isPending}
+          className="text-sm px-4 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {createProd.isPending ? "作成中..." : "作成"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ---- Production Section (for selected org) ----
 function ProductionSection({ orgId }: { orgId: string }) {
   const { data: productions, isLoading } = useProductions(orgId);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   if (isLoading) {
     return <p className="text-sm text-gray-400 py-2">読み込み中...</p>;
   }
 
-  if (!productions || productions.length === 0) {
-    return <p className="text-sm text-gray-400 py-2">公演がありません</p>;
-  }
-
   return (
     <div className="space-y-3">
-      {productions.map((prod) => (
-        <ProductionCard key={prod.id} prod={prod} orgId={orgId} />
-      ))}
+      {productions && productions.length > 0 ? (
+        productions.map((prod) => (
+          <ProductionCard key={prod.id} prod={prod} orgId={orgId} />
+        ))
+      ) : (
+        <p className="text-sm text-gray-400 py-2">公演がありません</p>
+      )}
+
+      {showCreateForm ? (
+        <CreateProductionForm
+          orgId={orgId}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      ) : (
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+        >
+          + 新しい公演を作成
+        </button>
+      )}
     </div>
   );
 }

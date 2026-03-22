@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useGanttData } from "./hooks/useGanttData";
 import { useStatuses } from "@/features/kanban/hooks/useStatuses";
-import { useIssueDetail, useUpdateIssueStatus } from "@/features/kanban/hooks/useIssues";
+import { useIssueDetail, useUpdateIssue, useUpdateIssueStatus } from "@/features/kanban/hooks/useIssues";
+import { useProductionMembers } from "@/features/members/hooks/useProductionMembers";
 import GanttChart from "./GanttChart";
 import IssueDetailPanel from "@/features/kanban/IssueDetailPanel";
 import CountdownBadge from "@/features/production/CountdownBadge";
@@ -47,6 +48,16 @@ export default function GanttPage() {
     productionId!,
     selectedIssueId,
   );
+  const { data: productionMembers = [] } = useProductionMembers(
+    orgId!,
+    productionId!,
+  );
+  const memberOptions = productionMembers.map((m) => ({
+    user_id: m.user_id,
+    display_name: m.display_name,
+  }));
+
+  const updateIssue = useUpdateIssue(orgId!, productionId!);
   const updateStatus = useUpdateIssueStatus(orgId!, productionId!);
 
   const handleIssueClick = (issue: Issue) => {
@@ -132,6 +143,7 @@ export default function GanttPage() {
             groups={scheduledGroups}
             phases={phases}
             milestones={milestones}
+            statuses={statuses}
             timelineStart={timelineStart}
             timelineEnd={timelineEnd}
             dayWidth={DAY_WIDTH[viewMode]}
@@ -188,9 +200,13 @@ export default function GanttPage() {
         <IssueDetailPanel
           issue={selectedIssue}
           statuses={statuses}
+          members={memberOptions}
           onClose={() => setSelectedIssueId(null)}
           onStatusChange={(issueId, statusId) =>
             updateStatus.mutate({ issueId, statusId })
+          }
+          onUpdate={(issueId, body) =>
+            updateIssue.mutate({ issueId, body })
           }
         />
       )}
