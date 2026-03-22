@@ -11,6 +11,7 @@ interface GanttChartProps {
   timelineStart: Date;
   timelineEnd: Date;
   dayWidth: number;
+  openingDate?: Date | null;
   onIssueClick: (issue: Issue) => void;
 }
 
@@ -31,6 +32,7 @@ export default function GanttChart({
   timelineStart,
   timelineEnd,
   dayWidth,
+  openingDate,
   onIssueClick,
 }: GanttChartProps) {
   const labelRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,10 @@ export default function GanttChart({
   const today = new Date();
   const todayOffset = diffDays(timelineStart, today) * dayWidth;
   const showToday = todayOffset >= 0 && todayOffset <= timelineWidth;
+
+  // Opening date position
+  const openingOffset = openingDate ? diffDays(timelineStart, openingDate) * dayWidth : -1;
+  const showOpening = openingDate != null && openingOffset >= 0 && openingOffset <= timelineWidth;
 
   // Calculate total rows for background elements
   let issueContentHeight = 0;
@@ -204,6 +210,18 @@ export default function GanttChart({
                 </div>
               );
             })}
+
+            {/* Opening date line */}
+            {showOpening && (
+              <div
+                className="absolute top-0 bottom-0 border-l-2 border-dashed border-amber-500 z-10 pointer-events-none"
+                style={{ left: openingOffset }}
+              >
+                <div className="absolute -top-0.5 -left-3 bg-amber-500 text-white text-[9px] px-1 rounded">
+                  本番
+                </div>
+              </div>
+            )}
 
             {/* Today line */}
             {showToday && (
