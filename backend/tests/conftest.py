@@ -244,7 +244,7 @@ async def production(
         organization_id=org.id,
         name="テスト公演",
         description="テスト用の公演",
-        production_type="real",
+        production_type="physical",
     )
     db_session.add(prod)
     await db_session.flush()

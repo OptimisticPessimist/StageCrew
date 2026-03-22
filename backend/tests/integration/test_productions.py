@@ -30,7 +30,7 @@ async def test_create_production(client: AsyncClient, org_owner):
     org, _ = org_owner
     resp = await client.post(
         f"/api/organizations/{org.id}/productions/",
-        json={"name": "新公演", "production_type": "real"},
+        json={"name": "新公演", "production_type": "physical"},
     )
     assert resp.status_code == 201
     assert resp.json()["name"] == "新公演"

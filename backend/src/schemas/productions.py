@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class ProductionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     description: str | None = None
-    production_type: str = Field("real", pattern=r"^(real|vr|hybrid)$")
+    production_type: str = Field("physical", pattern=r"^(physical|vr|hybrid)$")
     opening_date: datetime | None = None
     closing_date: datetime | None = None
     discord_webhook_url: str | None = None
@@ -17,7 +17,7 @@ class ProductionCreate(BaseModel):
 class ProductionUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=256)
     description: str | None = None
-    production_type: str | None = Field(None, pattern=r"^(real|vr|hybrid)$")
+    production_type: str | None = Field(None, pattern=r"^(physical|vr|hybrid)$")
     opening_date: datetime | None = None
     closing_date: datetime | None = None
     current_phase: str | None = None

@@ -7,7 +7,7 @@ export default function LoginPage() {
           演劇団体向けタスク管理SaaS
         </p>
         <p className="text-sm text-gray-400 mb-8">
-          リアル演劇 / VR演劇 対応
+          物理演劇 / VR演劇 対応
         </p>
         <a
           href="/api/auth/discord/login"
