@@ -1,16 +1,10 @@
 // ---- Production ----
-export interface Production {
+export interface ProductionSummary {
   id: string;
-  organization_id: string;
   name: string;
-  description: string | null;
-  production_type: string;
   opening_date: string | null;
   closing_date: string | null;
   current_phase: string | null;
-  discord_webhook_url: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 // ---- Status ----

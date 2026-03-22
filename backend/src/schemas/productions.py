@@ -41,6 +41,16 @@ class ProductionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ProductionSummaryResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    opening_date: datetime | None
+    closing_date: datetime | None
+    current_phase: str | None
+
+    model_config = {"from_attributes": True}
+
+
 class ProductionListResponse(BaseModel):
     id: uuid.UUID
     name: str
