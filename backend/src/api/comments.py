@@ -148,6 +148,7 @@ async def delete_comment(
 
 # ---- ヘルパー ----
 
+
 async def _get_issue_or_404(
     issue_id: uuid.UUID,
     production_id: uuid.UUID,
@@ -161,9 +162,7 @@ async def _get_issue_or_404(
     if production is None:
         raise HTTPException(status_code=404, detail="公演が見つかりません")
 
-    result = await db.execute(
-        select(Issue).where(Issue.id == issue_id, Issue.production_id == production_id)
-    )
+    result = await db.execute(select(Issue).where(Issue.id == issue_id, Issue.production_id == production_id))
     issue = result.scalar_one_or_none()
     if issue is None:
         raise HTTPException(status_code=404, detail="課題が見つかりません")
@@ -172,9 +171,7 @@ async def _get_issue_or_404(
 
 
 async def _get_comment_or_404(comment_id: uuid.UUID, issue_id: uuid.UUID, db: AsyncSession) -> Comment:
-    result = await db.execute(
-        select(Comment).where(Comment.id == comment_id, Comment.issue_id == issue_id)
-    )
+    result = await db.execute(select(Comment).where(Comment.id == comment_id, Comment.issue_id == issue_id))
     comment = result.scalar_one_or_none()
     if comment is None:
         raise HTTPException(status_code=404, detail="コメントが見つかりません")

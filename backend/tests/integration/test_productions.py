@@ -4,9 +4,6 @@ import uuid
 
 from httpx import AsyncClient
 
-from src.db.models import Organization, OrganizationMembership, Production, ProductionMembership, User
-
-
 # ---- 一覧 ----
 
 
@@ -77,9 +74,7 @@ async def test_update_production_as_manager(client: AsyncClient, production):
     assert resp.json()["name"] == "更新公演"
 
 
-async def test_update_production_as_member_forbidden(
-    client_as_other: AsyncClient, production, org_with_member
-):
+async def test_update_production_as_member_forbidden(client_as_other: AsyncClient, production, org_with_member):
     prod, _ = production
     resp = await client_as_other.patch(
         f"/api/organizations/{prod.organization_id}/productions/{prod.id}",
@@ -99,7 +94,5 @@ async def test_delete_production(client: AsyncClient, production):
 
 async def test_delete_production_not_admin(client_as_other: AsyncClient, production, org_with_member):
     prod, _ = production
-    resp = await client_as_other.delete(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}"
-    )
+    resp = await client_as_other.delete(f"/api/organizations/{prod.organization_id}/productions/{prod.id}")
     assert resp.status_code == 403

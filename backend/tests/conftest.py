@@ -6,12 +6,15 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import String, Text, event, types
-from sqlalchemy.dialects.postgresql import ARRAY, UUID as PG_UUID
+from sqlalchemy import String, Text, types
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.sql.expression import ClauseElement
-from sqlalchemy.sql.operators import nulls_last_op
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import UnaryExpression
+from sqlalchemy.sql.operators import nulls_first_op, nulls_last_op
 
+from src.core.config import settings
 from src.db.base import Base, get_db
 from src.db.models import (
     Department,
@@ -19,8 +22,8 @@ from src.db.models import (
     OrganizationMembership,
     Production,
     ProductionMembership,
-    StatusDefinition,
     StaffRole,
+    StatusDefinition,
     User,
 )
 from src.dependencies.auth import CurrentUser, get_current_user
@@ -81,18 +84,12 @@ def _patch_columns_for_sqlite():
 # ---------------------------------------------------------------------------
 
 
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import UnaryExpression
-
-
 @compiles(UnaryExpression, "sqlite")
 def _compile_unary_sqlite(element, compiler, **kw):
     """SQLiteでnullslast/nullsfirstの修飾子を無視する。"""
-    if hasattr(element, "modifier") and element.modifier in (nulls_last_op, ):
+    if hasattr(element, "modifier") and element.modifier in (nulls_last_op,):
         return compiler.process(element.element, **kw)
-    # nullsfirst も念のため
-    from sqlalchemy.sql.operators import nulls_first_op
-    if hasattr(element, "modifier") and element.modifier in (nulls_first_op, ):
+    if hasattr(element, "modifier") and element.modifier in (nulls_first_op,):
         return compiler.process(element.element, **kw)
     return compiler.visit_unary(element, **kw)
 
@@ -154,10 +151,14 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_get_current_user
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        yield ac
-
-    app.dependency_overrides.clear()
+    original_debug = settings.debug
+    settings.debug = True
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            yield ac
+    finally:
+        settings.debug = original_debug
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -259,9 +260,7 @@ async def production(
 
 
 @pytest.fixture
-async def department(
-    db_session: AsyncSession, production: tuple[Production, ProductionMembership]
-) -> Department:
+async def department(db_session: AsyncSession, production: tuple[Production, ProductionMembership]) -> Department:
     prod, _ = production
     dept = Department(production_id=prod.id, name="照明部", color="#FF0000", sort_order=0)
     db_session.add(dept)
@@ -278,13 +277,9 @@ async def staff_role(db_session: AsyncSession, department: Department) -> StaffR
 
 
 @pytest.fixture
-async def status_def(
-    db_session: AsyncSession, production: tuple[Production, ProductionMembership]
-) -> StatusDefinition:
+async def status_def(db_session: AsyncSession, production: tuple[Production, ProductionMembership]) -> StatusDefinition:
     prod, _ = production
-    sd = StatusDefinition(
-        production_id=prod.id, name="TODO", color="#0000FF", sort_order=0, is_closed=False
-    )
+    sd = StatusDefinition(production_id=prod.id, name="TODO", color="#0000FF", sort_order=0, is_closed=False)
     db_session.add(sd)
     await db_session.flush()
     return sd

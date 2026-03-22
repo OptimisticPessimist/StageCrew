@@ -39,12 +39,8 @@ async def list_production_members(
         .where(ProductionMembership.production_id == production_id)
         .options(
             selectinload(ProductionMembership.user),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.department
-            ),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.staff_role
-            ),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.department),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.staff_role),
         )
         .order_by(ProductionMembership.created_at)
     )
@@ -101,12 +97,8 @@ async def add_production_member(
         .where(ProductionMembership.id == membership.id)
         .options(
             selectinload(ProductionMembership.user),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.department
-            ),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.staff_role
-            ),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.department),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.staff_role),
         )
     )
     result = await db.execute(stmt)
@@ -137,12 +129,8 @@ async def update_production_member(
         .where(ProductionMembership.id == membership_id)
         .options(
             selectinload(ProductionMembership.user),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.department
-            ),
-            selectinload(ProductionMembership.department_memberships).selectinload(
-                DepartmentMembership.staff_role
-            ),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.department),
+            selectinload(ProductionMembership.department_memberships).selectinload(DepartmentMembership.staff_role),
         )
     )
     result = await db.execute(stmt)
@@ -190,9 +178,7 @@ def _to_response(m: ProductionMembership) -> ProductionMemberResponse:
     )
 
 
-async def _get_production_or_404(
-    production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession
-) -> Production:
+async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession) -> Production:
     result = await db.execute(
         select(Production).where(Production.id == production_id, Production.organization_id == org_id)
     )

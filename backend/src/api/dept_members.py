@@ -34,9 +34,7 @@ async def list_dept_members(
         select(DepartmentMembership)
         .where(DepartmentMembership.department_id == dept_id)
         .options(
-            selectinload(DepartmentMembership.production_membership).selectinload(
-                ProductionMembership.user
-            ),
+            selectinload(DepartmentMembership.production_membership).selectinload(ProductionMembership.user),
             selectinload(DepartmentMembership.staff_role),
         )
         .order_by(DepartmentMembership.created_at)
@@ -95,7 +93,8 @@ async def add_dept_member(
         production_membership_id=body.production_membership_id,
         department_id=dept_id,
         staff_role_id=body.staff_role_id,
-        capabilities=body.capabilities or ["task.view", "task.create", "task.edit_dept", "task.assign", "comment.create"],
+        capabilities=body.capabilities
+        or ["task.view", "task.create", "task.edit_dept", "task.assign", "comment.create"],
     )
     db.add(membership)
     await db.flush()
@@ -105,9 +104,7 @@ async def add_dept_member(
         select(DepartmentMembership)
         .where(DepartmentMembership.id == membership.id)
         .options(
-            selectinload(DepartmentMembership.production_membership).selectinload(
-                ProductionMembership.user
-            ),
+            selectinload(DepartmentMembership.production_membership).selectinload(ProductionMembership.user),
             selectinload(DepartmentMembership.staff_role),
         )
     )
@@ -149,9 +146,7 @@ async def update_dept_member(
         select(DepartmentMembership)
         .where(DepartmentMembership.id == membership_id)
         .options(
-            selectinload(DepartmentMembership.production_membership).selectinload(
-                ProductionMembership.user
-            ),
+            selectinload(DepartmentMembership.production_membership).selectinload(ProductionMembership.user),
             selectinload(DepartmentMembership.staff_role),
         )
     )
@@ -191,9 +186,7 @@ def _to_response(m: DepartmentMembership) -> DeptMemberResponse:
     )
 
 
-async def _get_department_or_404(
-    dept_id: uuid.UUID, production_id: uuid.UUID, db: AsyncSession
-) -> Department:
+async def _get_department_or_404(dept_id: uuid.UUID, production_id: uuid.UUID, db: AsyncSession) -> Department:
     result = await db.execute(
         select(Department).where(Department.id == dept_id, Department.production_id == production_id)
     )

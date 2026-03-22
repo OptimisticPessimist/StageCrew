@@ -84,11 +84,7 @@ async def create_department(
         await db.flush()
 
     # Eager load staff_roles for response
-    stmt = (
-        select(Department)
-        .where(Department.id == dept.id)
-        .options(selectinload(Department.staff_roles))
-    )
+    stmt = select(Department).where(Department.id == dept.id).options(selectinload(Department.staff_roles))
     result = await db.execute(stmt)
     return result.scalar_one()
 
@@ -133,11 +129,7 @@ async def update_department(
         setattr(dept, key, value)
     await db.flush()
 
-    stmt = (
-        select(Department)
-        .where(Department.id == dept.id)
-        .options(selectinload(Department.staff_roles))
-    )
+    stmt = select(Department).where(Department.id == dept.id).options(selectinload(Department.staff_roles))
     result = await db.execute(stmt)
     return result.scalar_one()
 
@@ -173,11 +165,7 @@ async def list_staff_roles(
     await _check_org_membership(org_id, current_user.id, db)
     await _get_department_or_404(dept_id, production_id, db)
 
-    stmt = (
-        select(StaffRole)
-        .where(StaffRole.department_id == dept_id)
-        .order_by(StaffRole.sort_order, StaffRole.name)
-    )
+    stmt = select(StaffRole).where(StaffRole.department_id == dept_id).order_by(StaffRole.sort_order, StaffRole.name)
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -268,9 +256,7 @@ async def _get_department_or_404(dept_id: uuid.UUID, production_id: uuid.UUID, d
 
 
 async def _get_staff_role_or_404(role_id: uuid.UUID, dept_id: uuid.UUID, db: AsyncSession) -> StaffRole:
-    result = await db.execute(
-        select(StaffRole).where(StaffRole.id == role_id, StaffRole.department_id == dept_id)
-    )
+    result = await db.execute(select(StaffRole).where(StaffRole.id == role_id, StaffRole.department_id == dept_id))
     role = result.scalar_one_or_none()
     if role is None:
         raise HTTPException(status_code=404, detail="スタッフロールが見つかりません")

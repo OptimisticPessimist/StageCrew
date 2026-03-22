@@ -250,6 +250,7 @@ async def delete_issue(
 
 # ---- ヘルパー ----
 
+
 def _issue_to_list_response(issue: Issue) -> IssueListResponse:
     return IssueListResponse(
         id=issue.id,
@@ -260,14 +261,8 @@ def _issue_to_list_response(issue: Issue) -> IssueListResponse:
         department_id=issue.department_id,
         due_date=issue.due_date,
         start_date=issue.start_date,
-        assignees=[
-            {"user_id": a.user_id, "display_name": a.user.display_name}
-            for a in issue.assignees
-        ],
-        labels=[
-            {"label_id": il.label_id, "name": il.label.name, "color": il.label.color}
-            for il in issue.issue_labels
-        ],
+        assignees=[{"user_id": a.user_id, "display_name": a.user.display_name} for a in issue.assignees],
+        labels=[{"label_id": il.label_id, "name": il.label.name, "color": il.label.color} for il in issue.issue_labels],
         created_at=issue.created_at,
         updated_at=issue.updated_at,
     )
@@ -309,9 +304,7 @@ async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db
 
 
 async def _get_issue_or_404(issue_id: uuid.UUID, production_id: uuid.UUID, db: AsyncSession) -> Issue:
-    result = await db.execute(
-        select(Issue).where(Issue.id == issue_id, Issue.production_id == production_id)
-    )
+    result = await db.execute(select(Issue).where(Issue.id == issue_id, Issue.production_id == production_id))
     issue = result.scalar_one_or_none()
     if issue is None:
         raise HTTPException(status_code=404, detail="課題が見つかりません")

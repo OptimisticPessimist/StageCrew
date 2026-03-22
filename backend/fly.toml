@@ -1,0 +1,42 @@
+app = "stagecrew-api"
+primary_region = "nrt"
+
+[build]
+
+[env]
+  DEBUG = "false"
+  CORS_ORIGINS = '["https://stagecrew-web.fly.dev"]'
+  FRONTEND_URL = "https://stagecrew-web.fly.dev"
+  DISCORD_REDIRECT_URI = "https://stagecrew-api.fly.dev/api/auth/discord/callback"
+
+[deploy]
+  release_command = "alembic upgrade head"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 200
+    soft_limit = 150
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

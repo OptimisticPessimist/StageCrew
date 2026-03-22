@@ -1,8 +1,8 @@
 """認証dependency (get_current_user) のユニットテスト。"""
 
 import uuid
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -11,14 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
 from src.db.models import User
-from src.dependencies.auth import CurrentUser, DEV_USER_ID, get_current_user
+from src.dependencies.auth import DEV_USER_ID, CurrentUser, get_current_user
 
 
 def _make_jwt(user_id: str, discord_id: str = "123") -> str:
     payload = {
         "sub": user_id,
         "discord_id": discord_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "exp": datetime.now(UTC) + timedelta(hours=1),
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 

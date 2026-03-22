@@ -5,7 +5,7 @@ import uuid
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Department, Production, ProductionMembership, StatusDefinition, User
+from src.db.models import Department, StatusDefinition
 
 
 def _status_url(org_id, prod_id, suffix=""):
@@ -35,9 +35,7 @@ async def test_list_statuses_filter_by_department(
     client: AsyncClient, production, department: Department, db_session: AsyncSession
 ):
     prod, _ = production
-    sd = StatusDefinition(
-        production_id=prod.id, department_id=department.id, name="部門ステータス", sort_order=0
-    )
+    sd = StatusDefinition(production_id=prod.id, department_id=department.id, name="部門ステータス", sort_order=0)
     db_session.add(sd)
     await db_session.flush()
 

@@ -2,13 +2,12 @@
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Invitation, Organization, OrganizationMembership, User
-from tests.conftest import OTHER_USER_ID, TEST_USER_ID
+from src.db.models import Invitation, User
 
 
 def _inv_url(org_id, suffix=""):
@@ -27,7 +26,7 @@ async def test_list_invitations(client: AsyncClient, org_owner, db_session: Asyn
         token=secrets.token_urlsafe(32),
         org_role="member",
         status="pending",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(inv)
     await db_session.flush()
@@ -76,7 +75,7 @@ async def test_cancel_invitation(client: AsyncClient, org_owner, db_session: Asy
         token=secrets.token_urlsafe(32),
         org_role="member",
         status="pending",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(inv)
     await db_session.flush()
@@ -105,7 +104,7 @@ async def test_accept_invitation(
         token=token,
         org_role="member",
         status="pending",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(inv)
     await db_session.flush()
@@ -133,7 +132,7 @@ async def test_accept_invitation_already_used(
         token=token,
         org_role="member",
         status="accepted",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(inv)
     await db_session.flush()
@@ -153,7 +152,7 @@ async def test_accept_invitation_expired(
         token=token,
         org_role="member",
         status="pending",
-        expires_at=datetime.now(timezone.utc) - timedelta(days=1),  # 期限切れ
+        expires_at=datetime.now(UTC) - timedelta(days=1),  # 期限切れ
     )
     db_session.add(inv)
     await db_session.flush()
@@ -163,7 +162,12 @@ async def test_accept_invitation_expired(
 
 
 async def test_accept_invitation_already_member(
-    client_as_other: AsyncClient, org_owner, org_with_member, other_user: User, db_session: AsyncSession, test_user: User
+    client_as_other: AsyncClient,
+    org_owner,
+    org_with_member,
+    other_user: User,
+    db_session: AsyncSession,
+    test_user: User,
 ):
     org, _ = org_owner
     token = secrets.token_urlsafe(32)
@@ -173,7 +177,7 @@ async def test_accept_invitation_already_member(
         token=token,
         org_role="member",
         status="pending",
-        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
     db_session.add(inv)
     await db_session.flush()
