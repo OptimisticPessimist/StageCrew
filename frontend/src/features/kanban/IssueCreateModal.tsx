@@ -31,8 +31,8 @@ export default function IssueCreateModal({
       issue_type: issueType,
       priority,
       status_id: statusId || null,
-      start_date: startDate || null,
-      due_date: dueDate || null,
+      start_date: startDate ? `${startDate}T00:00:00` : null,
+      due_date: dueDate ? `${dueDate}T00:00:00` : null,
     });
   };
 

@@ -155,7 +155,7 @@ export default function GanttChart({
               if (!phase.start_date || !phase.end_date) return null;
               const phaseStart = diffDays(timelineStart, new Date(phase.start_date)) * dayWidth;
               const phaseWidth = Math.max(
-                diffDays(new Date(phase.start_date), new Date(phase.end_date)),
+                diffDays(new Date(phase.start_date), new Date(phase.end_date)) + 1,
                 1,
               ) * dayWidth;
               return (

@@ -92,6 +92,9 @@ export function useGanttData(orgId: string, productionId: string) {
       const timestamps = allDates.map((d) => d.getTime());
       start = new Date(Math.min(...timestamps));
       end = new Date(Math.max(...timestamps));
+      // Normalize to start of day (strip time component)
+      start = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      end = new Date(end.getFullYear(), end.getMonth(), end.getDate());
       // Add 1 week padding
       start.setDate(start.getDate() - 7);
       end.setDate(end.getDate() + 7);
