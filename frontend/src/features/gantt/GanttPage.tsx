@@ -98,7 +98,7 @@ export default function GanttPage() {
 
       {/* ガントチャート */}
       <main className="flex-1 overflow-hidden p-6">
-        {scheduledGroups.length === 0 ? (
+        {scheduledGroups.length === 0 && phases.length === 0 && milestones.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <p className="text-gray-500 text-lg mb-2">
               スケジュールされた課題がありません

@@ -121,9 +121,10 @@ export default function GanttChart({
             {phases.map((phase) => {
               if (!phase.start_date || !phase.end_date) return null;
               const phaseStart = diffDays(timelineStart, new Date(phase.start_date)) * dayWidth;
-              const phaseWidth =
-                diffDays(new Date(phase.start_date), new Date(phase.end_date)) * dayWidth;
-              if (phaseWidth <= 0) return null;
+              const phaseWidth = Math.max(
+                diffDays(new Date(phase.start_date), new Date(phase.end_date)),
+                1,
+              ) * dayWidth;
               return (
                 <div
                   key={phase.id}

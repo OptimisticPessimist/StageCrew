@@ -19,6 +19,7 @@ export default function IssueCreateModal({
   const [issueType, setIssueType] = useState("task");
   const [priority, setPriority] = useState("medium");
   const [statusId, setStatusId] = useState<string>(defaultStatusId ?? "");
+  const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,6 +31,7 @@ export default function IssueCreateModal({
       issue_type: issueType,
       priority,
       status_id: statusId || null,
+      start_date: startDate || null,
       due_date: dueDate || null,
     });
   };
@@ -125,6 +127,20 @@ export default function IssueCreateModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    開始日
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     期限
                   </label>
                   <input
@@ -134,6 +150,7 @@ export default function IssueCreateModal({
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
                   />
                 </div>
+                <div></div>
               </div>
             </div>
           </div>
