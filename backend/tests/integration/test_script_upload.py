@@ -29,11 +29,11 @@ EXT. 公園 - 昼
 
 太郎：
 いい天気だね。
-""".encode("utf-8")
+""".encode()
 
 
 def _make_plain_text() -> bytes:
-    return "これはプレーンテキストです。\n特にフォーマットはありません。\n".encode("utf-8")
+    return "これはプレーンテキストです。\n特にフォーマットはありません。\n".encode()
 
 
 def _url(prod) -> str:

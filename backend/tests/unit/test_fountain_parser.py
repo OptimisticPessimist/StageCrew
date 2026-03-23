@@ -1,10 +1,6 @@
 """Fountain パーサーのユニットテスト。"""
 
-from src.services.fountain_parser import (
-    FountainCharacter,
-    FountainParseResult,
-    parse_fountain,
-)
+from src.services.fountain_parser import parse_fountain
 
 
 # ============================================================
@@ -393,7 +389,7 @@ INT. 部屋
 """
         result = parse_fountain(text)
         lines = result.scenes[0].lines
-        assert [l.sort_order for l in lines] == [0, 1, 2]
+        assert [ln.sort_order for ln in lines] == [0, 1, 2]
 
 
 # ============================================================

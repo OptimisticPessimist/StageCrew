@@ -249,13 +249,13 @@ def _parse_scenes(
     synopsis_text: str | None = None
     if scene_breaks:
         pre_scene = "\n".join(
-            l.strip() for l in body_lines[: scene_breaks[0][0]]
+            line.strip() for line in body_lines[: scene_breaks[0][0]]
         ).strip()
         if pre_scene:
             synopsis_text = pre_scene
     elif body_lines:
         # シーン見出しがない場合、全テキストを synopsis とする
-        full_text = "\n".join(l.strip() for l in body_lines).strip()
+        full_text = "\n".join(line.strip() for line in body_lines).strip()
         if full_text:
             synopsis_text = full_text
 

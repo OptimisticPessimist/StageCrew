@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -543,7 +543,7 @@ def _parse_draft_date(value: str | None) -> datetime | None:
     for fmt in _DRAFT_DATE_FORMATS:
         try:
             dt = datetime.strptime(value.strip(), fmt)
-            return dt.replace(tzinfo=timezone.utc)
+            return dt.replace(tzinfo=UTC)
         except ValueError:
             continue
     return None
