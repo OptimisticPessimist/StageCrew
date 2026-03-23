@@ -23,7 +23,6 @@ from src.schemas.scripts import (
     LineResponse,
     LineUpdate,
     SceneCreate,
-    SceneDetailResponse,
     SceneResponse,
     SceneUpdate,
     ScriptCreate,
