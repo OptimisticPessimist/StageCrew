@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db.base import get_db
-from src.db.models import Issue, IssueAssignee, Production
+from src.db.models import Issue, IssueAssignee, OrganizationMembership, Production
 from src.dependencies.auth import CurrentUser, get_current_user
 from src.schemas.home import HomeDeadlineWarnings, HomeIssue, HomeResponse
 
@@ -21,10 +21,17 @@ async def get_home(
     db: AsyncSession = Depends(get_db),
 ):
     """ホーム画面データ（全公演横断マイタスク + 期限警告）"""
-    # 自分にアサインされた全Issueを取得（status, department, production, organization を eager load）
+    # 自分にアサインされた全Issueを取得（所属組織の課題のみ）
+    # Issue -> Production -> Organization <- OrganizationMembership で所属チェック
     stmt = (
         select(Issue)
         .join(IssueAssignee, IssueAssignee.issue_id == Issue.id)
+        .join(Production, Production.id == Issue.production_id)
+        .join(
+            OrganizationMembership,
+            (OrganizationMembership.organization_id == Production.organization_id)
+            & (OrganizationMembership.user_id == current_user.id),
+        )
         .where(IssueAssignee.user_id == current_user.id)
         .options(
             selectinload(Issue.status),
