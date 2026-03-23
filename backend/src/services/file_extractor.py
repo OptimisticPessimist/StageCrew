@@ -29,7 +29,7 @@ def decode_text(raw: bytes) -> str:
 
 
 # Fountain 判定用のパターン
-_TITLE_KEY_RE = re.compile(r"^(Title|Author|Draft date|Copyright|Contact|Notes|Synopsis):", re.IGNORECASE | re.MULTILINE)
+_TITLE_KEY_RE = re.compile(r"^(Title|Author|Draft date|Copyright|Contact|Notes|Synopsis):", re.IGNORECASE)
 _SCENE_HEADING_RE = re.compile(
     r"^(?:INT\.|EXT\.|INT\./EXT\.|I/E)\s+",
     re.IGNORECASE | re.MULTILINE,
@@ -47,9 +47,10 @@ def detect_fountain(text: str) -> bool:
     """
     score = 0
 
-    # タイトルページキーをチェック（先頭 20 行以内）
-    head = "\n".join(text.split("\n")[:20])
-    if _TITLE_KEY_RE.search(head):
+    # タイトルページキーをチェック（先頭行が Key: Value 形式）
+    # _parse_title_page と同じ前提: 1行目が Key: で始まる必要がある
+    first_line = text.split("\n", 1)[0].strip()
+    if _TITLE_KEY_RE.match(first_line):
         score += 1
 
     if _SCENE_HEADING_RE.search(text):

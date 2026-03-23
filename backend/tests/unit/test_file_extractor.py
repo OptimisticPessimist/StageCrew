@@ -63,12 +63,24 @@ INT. 部屋
 """
         assert detect_fountain(text) is True
 
-    def test_positive_title_not_on_first_line(self):
-        """先頭行が空行やコメントでも Title: を検出する。"""
+    def test_title_not_on_first_line_needs_other_indicators(self):
+        """先頭行が Title: でない場合はシーン見出し+登場人物で判定。"""
         text = """\
 
 Title: テスト脚本
 Author: テスト
+
+INT. 部屋 - 朝
+"""
+        # Title: が1行目でないのでタイトルページスコアは0
+        # シーン見出しのみで score=1 → Fountain とは判定されない
+        assert detect_fountain(text) is False
+
+    def test_positive_scene_and_characters_without_title(self):
+        """タイトルページなしでもシーン見出し+登場人物で検出。"""
+        text = """\
+# 登場人物
+太郎
 
 INT. 部屋 - 朝
 """
