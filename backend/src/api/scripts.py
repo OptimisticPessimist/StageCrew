@@ -526,6 +526,7 @@ async def delete_line(
 # ヘルパー
 # ============================================================
 
+
 def _truncate(value: str | None, max_len: int) -> str | None:
     """文字列を DB カラムの最大長に切り詰める。"""
     if value is None:

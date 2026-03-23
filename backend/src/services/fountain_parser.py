@@ -79,9 +79,7 @@ _TITLE_PAGE_KEYS: dict[str, str] = {
 _CHARACTERS_HEADING_RE = re.compile(r"^#\s*登場人物\s*$")
 
 # キャラクター名のパターン: 全角文字 or 大文字英字で始まる名前
-_CHARACTER_CUE_RE = re.compile(
-    r"^([A-Z\u3000-\u9FFF\uFF00-\uFFEF][^\n]*?)[:：]?\s*$"
-)
+_CHARACTER_CUE_RE = re.compile(r"^([A-Z\u3000-\u9FFF\uFF00-\uFFEF][^\n]*?)[:：]?\s*$")
 
 
 # ============================================================
@@ -165,9 +163,7 @@ def _parse_title_page(lines: list[str]) -> tuple[FountainMetadata, int]:
     return metadata, end_index
 
 
-def _set_metadata_field(
-    metadata: FountainMetadata, key: str, value_lines: list[str]
-) -> None:
+def _set_metadata_field(metadata: FountainMetadata, key: str, value_lines: list[str]) -> None:
     attr = _TITLE_PAGE_KEYS.get(key)
     if attr is not None:
         value = "\n".join(value_lines).strip()
@@ -214,9 +210,7 @@ def _parse_characters_section(lines: list[str]) -> list[FountainCharacter]:
             name = parts[0]
             description = parts[1] if len(parts) > 1 else None
 
-            characters.append(
-                FountainCharacter(name=name, description=description, sort_order=order)
-            )
+            characters.append(FountainCharacter(name=name, description=description, sort_order=order))
             order += 1
 
     return characters
@@ -225,9 +219,7 @@ def _parse_characters_section(lines: list[str]) -> list[FountainCharacter]:
 # ============================================================
 # シーンパース
 # ============================================================
-def _parse_scenes(
-    lines: list[str], known_names: set[str]
-) -> tuple[list[FountainScene], str | None]:
+def _parse_scenes(lines: list[str], known_names: set[str]) -> tuple[list[FountainScene], str | None]:
     """シーン見出しを検出し、各シーンのセリフを解析する。
 
     Returns:
@@ -248,9 +240,7 @@ def _parse_scenes(
     # Scene #0: 最初のシーン見出し前のテキスト
     synopsis_text: str | None = None
     if scene_breaks:
-        pre_scene = "\n".join(
-            line.strip() for line in body_lines[: scene_breaks[0][0]]
-        ).strip()
+        pre_scene = "\n".join(line.strip() for line in body_lines[: scene_breaks[0][0]]).strip()
         if pre_scene:
             synopsis_text = pre_scene
     elif body_lines:
@@ -315,9 +305,7 @@ def _strip_characters_section(lines: list[str]) -> list[str]:
 # ============================================================
 # セリフパース
 # ============================================================
-def _parse_dialogue(
-    lines: list[str], known_names: set[str]
-) -> list[FountainLine]:
+def _parse_dialogue(lines: list[str], known_names: set[str]) -> list[FountainLine]:
     """シーン内のテキストからセリフを解析する。"""
     result: list[FountainLine] = []
     order = 0

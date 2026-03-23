@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -q 'git commit' && make -C backend lint || true",
+            "timeout": 30,
+            "statusMessage": "make lint チェック中..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; echo $f | grep -qE '\\.py$' && make -C backend format && make -C backend lint || true; } 2>/dev/null || true",
+            "timeout": 15,
+            "statusMessage": "make format & lint..."
+          }
+        ]
+      }
+    ]
+  }
+}
