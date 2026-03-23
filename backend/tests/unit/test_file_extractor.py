@@ -63,6 +63,17 @@ INT. 部屋
 """
         assert detect_fountain(text) is True
 
+    def test_positive_title_not_on_first_line(self):
+        """先頭行が空行やコメントでも Title: を検出する。"""
+        text = """\
+
+Title: テスト脚本
+Author: テスト
+
+INT. 部屋 - 朝
+"""
+        assert detect_fountain(text) is True
+
     def test_negative_plain_text(self):
         text = "これはただのメモです。\n特に構造はありません。\n"
         assert detect_fountain(text) is False

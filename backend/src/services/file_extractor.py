@@ -29,7 +29,7 @@ def decode_text(raw: bytes) -> str:
 
 
 # Fountain 判定用のパターン
-_TITLE_KEY_RE = re.compile(r"^(Title|Author|Draft date|Copyright|Contact|Notes|Synopsis):", re.IGNORECASE)
+_TITLE_KEY_RE = re.compile(r"^(Title|Author|Draft date|Copyright|Contact|Notes|Synopsis):", re.IGNORECASE | re.MULTILINE)
 _SCENE_HEADING_RE = re.compile(
     r"^(?:INT\.|EXT\.|INT\./EXT\.|I/E)\s+",
     re.IGNORECASE | re.MULTILINE,

@@ -182,6 +182,7 @@ def _parse_characters_section(lines: list[str]) -> list[FountainCharacter]:
     """``# 登場人物`` セクションからキャラクター一覧を抽出する。"""
     characters: list[FountainCharacter] = []
     in_section = False
+    blank_count = 0
     order = 0
 
     for line in lines:
@@ -189,14 +190,17 @@ def _parse_characters_section(lines: list[str]) -> list[FountainCharacter]:
 
         if _CHARACTERS_HEADING_RE.match(stripped):
             in_section = True
+            blank_count = 0
             continue
 
         if in_section:
-            # 次の見出し or 空行2つで終了
+            # 二重空行で終了、単一空行はグループ区切りとしてスキップ
             if stripped == "":
-                if characters:  # セクション内の空行で終了
+                blank_count += 1
+                if blank_count >= 2:
                     break
                 continue
+            blank_count = 0
 
             if stripped.startswith("#"):
                 break
@@ -280,26 +284,27 @@ def _strip_characters_section(lines: list[str]) -> list[str]:
     """登場人物セクションを除去したリストを返す。"""
     result: list[str] = []
     in_section = False
-    found_any = False
+    blank_count = 0
 
     for line in lines:
         stripped = line.strip()
 
         if _CHARACTERS_HEADING_RE.match(stripped):
             in_section = True
-            found_any = False
+            blank_count = 0
             continue
 
         if in_section:
             if stripped == "":
-                if found_any:
+                blank_count += 1
+                if blank_count >= 2:
                     in_section = False
                 continue
+            blank_count = 0
             if stripped.startswith("#") or _SCENE_HEADING_RE.match(stripped):
                 in_section = False
                 result.append(line)
                 continue
-            found_any = True
             continue
 
         result.append(line)
@@ -358,6 +363,7 @@ def _parse_dialogue(
         if name_candidate in known_names:
             _flush()
             current_character = name_candidate
+            after_blank = False
             continue
 
         # 大文字のみの行もキャラクター名候補（西洋 ASCII スタイル）
@@ -370,6 +376,7 @@ def _parse_dialogue(
             _flush()
             current_character = stripped
             known_names.add(current_character)
+            after_blank = False
             continue
 
         # 日本語キャラクター名候補: 「名前：」または「名前:」で終わる短い行
@@ -381,6 +388,7 @@ def _parse_dialogue(
                 _flush()
                 current_character = candidate
                 known_names.add(current_character)
+                after_blank = False
                 continue
 
         after_blank = False

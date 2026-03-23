@@ -102,6 +102,25 @@ INT. 場所
         result = parse_fountain(text)
         assert [c.sort_order for c in result.characters] == [0, 1, 2]
 
+    def test_characters_with_blank_line_groups(self):
+        """単一空行で区切られたグループを含む登場人物セクション。"""
+        text = """\
+Title: テスト
+
+# 登場人物
+太郎　主人公
+
+花子　ヒロイン
+次郎　友人
+
+INT. 部屋
+"""
+        result = parse_fountain(text)
+        assert len(result.characters) == 3
+        assert result.characters[0].name == "太郎"
+        assert result.characters[1].name == "花子"
+        assert result.characters[2].name == "次郎"
+
     def test_no_characters_section(self):
         text = """\
 Title: テスト
@@ -279,6 +298,25 @@ INT. 部屋
         assert lines[0].character_name == "吉村"
         assert lines[0].content == "こんにちは"
         assert lines[1].character_name == "田中"
+
+    def test_at_after_known_character_not_mistaken(self):
+        """既知キャラ検出直後の@行がキューにならない。"""
+        text = """\
+Title: テスト
+
+# 登場人物
+太郎
+
+INT. 部屋
+
+太郎：
+@all 聞いてくれ。
+"""
+        result = parse_fountain(text)
+        lines = result.scenes[0].lines
+        assert len(lines) == 1
+        assert lines[0].character_name == "太郎"
+        assert "@all 聞いてくれ" in lines[0].content
 
     def test_at_in_dialogue_not_mistaken_as_cue(self):
         """セリフ中の @... はキャラクター名として誤検出されない。"""
