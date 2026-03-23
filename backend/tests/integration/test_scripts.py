@@ -11,9 +11,7 @@ from httpx import AsyncClient
 
 async def test_list_scripts_empty(client: AsyncClient, production):
     prod, _ = production
-    resp = await client.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/"
-    )
+    resp = await client.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/")
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -46,9 +44,7 @@ async def test_create_script_minimal(client: AsyncClient, production):
 
 async def test_list_scripts(client: AsyncClient, production, script):
     prod, _ = production
-    resp = await client.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/"
-    )
+    resp = await client.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/")
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) >= 1
@@ -58,9 +54,7 @@ async def test_list_scripts(client: AsyncClient, production, script):
 
 async def test_get_script(client: AsyncClient, production, script):
     prod, _ = production
-    resp = await client.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}"
-    )
+    resp = await client.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["title"] == "テスト脚本"
@@ -71,9 +65,7 @@ async def test_get_script(client: AsyncClient, production, script):
 
 async def test_get_script_not_found(client: AsyncClient, production):
     prod, _ = production
-    resp = await client.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{uuid.uuid4()}"
-    )
+    resp = await client.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{uuid.uuid4()}")
     assert resp.status_code == 404
 
 
@@ -91,22 +83,16 @@ async def test_update_script(client: AsyncClient, production, script):
 
 async def test_delete_script(client: AsyncClient, production, script):
     prod, _ = production
-    resp = await client.delete(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}"
-    )
+    resp = await client.delete(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}")
     assert resp.status_code == 204
 
-    resp = await client.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}"
-    )
+    resp = await client.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/{script.id}")
     assert resp.status_code == 404
 
 
 async def test_script_non_member_forbidden(client_as_other: AsyncClient, production, script):
     prod, _ = production
-    resp = await client_as_other.get(
-        f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/"
-    )
+    resp = await client_as_other.get(f"/api/organizations/{prod.organization_id}/productions/{prod.id}/scripts/")
     assert resp.status_code == 403
 
 

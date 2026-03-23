@@ -50,11 +50,7 @@ async def list_scripts(
     await _check_org_membership(org_id, current_user.id, db)
     await _get_production_or_404(production_id, org_id, db)
 
-    stmt = (
-        select(Script)
-        .where(Script.production_id == production_id)
-        .order_by(Script.created_at.desc())
-    )
+    stmt = select(Script).where(Script.production_id == production_id).order_by(Script.created_at.desc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -229,11 +225,7 @@ async def list_characters(
     await _check_org_membership(org_id, current_user.id, db)
     await _get_script_or_404(script_id, production_id, org_id, db)
 
-    stmt = (
-        select(Character)
-        .where(Character.script_id == script_id)
-        .order_by(Character.sort_order, Character.name)
-    )
+    stmt = select(Character).where(Character.script_id == script_id).order_by(Character.sort_order, Character.name)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -314,11 +306,7 @@ async def list_lines(
     await _get_script_or_404(script_id, production_id, org_id, db)
     await _get_scene_or_404(scene_id, script_id, db)
 
-    stmt = (
-        select(Line)
-        .where(Line.scene_id == scene_id)
-        .order_by(Line.sort_order)
-    )
+    stmt = select(Line).where(Line.scene_id == scene_id).order_by(Line.sort_order)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -442,18 +430,14 @@ async def _get_script_or_404(
 
 
 async def _get_scene_or_404(scene_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Scene:
-    result = await db.execute(
-        select(Scene).where(Scene.id == scene_id, Scene.script_id == script_id)
-    )
+    result = await db.execute(select(Scene).where(Scene.id == scene_id, Scene.script_id == script_id))
     scene = result.scalar_one_or_none()
     if scene is None:
         raise HTTPException(status_code=404, detail="シーンが見つかりません")
     return scene
 
 
-async def _validate_character_in_script(
-    character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession
-) -> None:
+async def _validate_character_in_script(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> None:
     """character_id が指定スクリプトに属するか検証"""
     result = await db.execute(
         select(Character.id).where(Character.id == character_id, Character.script_id == script_id)
@@ -466,9 +450,7 @@ async def _validate_character_in_script(
 
 
 async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Character:
-    result = await db.execute(
-        select(Character).where(Character.id == character_id, Character.script_id == script_id)
-    )
+    result = await db.execute(select(Character).where(Character.id == character_id, Character.script_id == script_id))
     character = result.scalar_one_or_none()
     if character is None:
         raise HTTPException(status_code=404, detail="登場人物が見つかりません")
@@ -476,9 +458,7 @@ async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, d
 
 
 async def _get_line_or_404(line_id: uuid.UUID, scene_id: uuid.UUID, db: AsyncSession) -> Line:
-    result = await db.execute(
-        select(Line).where(Line.id == line_id, Line.scene_id == scene_id)
-    )
+    result = await db.execute(select(Line).where(Line.id == line_id, Line.scene_id == scene_id))
     line = result.scalar_one_or_none()
     if line is None:
         raise HTTPException(status_code=404, detail="セリフが見つかりません")

@@ -129,9 +129,7 @@ class CharacterResponse(BaseModel):
 # ============================================================
 # Script (脚本)
 # ============================================================
-_SCRIPT_NON_NULLABLE = frozenset(
-    {"title", "revision", "pdf_orientation", "pdf_writing_direction", "is_public"}
-)
+_SCRIPT_NON_NULLABLE = frozenset({"title", "revision", "pdf_orientation", "pdf_writing_direction", "is_public"})
 
 
 class ScriptCreate(BaseModel):
