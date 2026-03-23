@@ -34,6 +34,7 @@ def upgrade() -> None:
     sa.Column('copyright', sa.String(length=512), nullable=True),
     sa.Column('contact', sa.String(length=512), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('synopsis', sa.Text(), nullable=True),
     sa.Column('pdf_orientation', sa.String(length=16), nullable=False),
     sa.Column('pdf_writing_direction', sa.String(length=16), nullable=False),
     sa.Column('is_public', sa.Boolean(), nullable=False),

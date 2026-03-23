@@ -17,11 +17,15 @@ from sqlalchemy.sql.operators import nulls_first_op, nulls_last_op
 from src.core.config import settings
 from src.db.base import Base, get_db
 from src.db.models import (
+    Character,
     Department,
+    Line,
     Organization,
     OrganizationMembership,
     Production,
     ProductionMembership,
+    Scene,
+    Script,
     StaffRole,
     StatusDefinition,
     User,
@@ -283,3 +287,44 @@ async def status_def(db_session: AsyncSession, production: tuple[Production, Pro
     db_session.add(sd)
     await db_session.flush()
     return sd
+
+
+@pytest.fixture
+async def script(
+    db_session: AsyncSession, production: tuple[Production, ProductionMembership], test_user: User
+) -> Script:
+    prod, _ = production
+    s = Script(
+        production_id=prod.id,
+        uploaded_by=test_user.id,
+        title="テスト脚本",
+        author="テスト作家",
+        synopsis="あらすじテスト",
+    )
+    db_session.add(s)
+    await db_session.flush()
+    return s
+
+
+@pytest.fixture
+async def scene(db_session: AsyncSession, script: Script) -> Scene:
+    sc = Scene(script_id=script.id, act_number=1, scene_number=1, heading="第1幕 第1場", sort_order=0)
+    db_session.add(sc)
+    await db_session.flush()
+    return sc
+
+
+@pytest.fixture
+async def character(db_session: AsyncSession, script: Script) -> Character:
+    ch = Character(script_id=script.id, name="太郎", description="主人公", sort_order=0)
+    db_session.add(ch)
+    await db_session.flush()
+    return ch
+
+
+@pytest.fixture
+async def line(db_session: AsyncSession, scene: Scene, character: Character) -> Line:
+    ln = Line(scene_id=scene.id, character_id=character.id, content="こんにちは", sort_order=0)
+    db_session.add(ln)
+    await db_session.flush()
+    return ln

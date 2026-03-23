@@ -105,6 +105,7 @@ class ScriptCreate(BaseModel):
     copyright: str | None = Field(None, max_length=512)
     contact: str | None = Field(None, max_length=512)
     notes: str | None = None
+    synopsis: str | None = None
     pdf_orientation: str = Field("landscape", pattern=r"^(landscape|portrait)$")
     pdf_writing_direction: str = Field("vertical", pattern=r"^(vertical|horizontal)$")
     is_public: bool = False
@@ -122,6 +123,7 @@ class ScriptUpdate(BaseModel):
     copyright: str | None = Field(None, max_length=512)
     contact: str | None = Field(None, max_length=512)
     notes: str | None = None
+    synopsis: str | None = None
     pdf_orientation: str | None = Field(None, pattern=r"^(landscape|portrait)$")
     pdf_writing_direction: str | None = Field(None, pattern=r"^(vertical|horizontal)$")
     is_public: bool | None = None
@@ -141,6 +143,7 @@ class ScriptListResponse(BaseModel):
     title: str
     author: str | None
     revision: int
+    synopsis: str | None
     is_public: bool
     uploaded_by: uuid.UUID
     uploaded_at: datetime
@@ -157,6 +160,7 @@ class ScriptDetailResponse(ScriptListResponse):
     copyright: str | None
     contact: str | None
     notes: str | None
+    synopsis: str | None
     pdf_orientation: str
     pdf_writing_direction: str
     public_terms: str | None
