@@ -1,6 +1,8 @@
+import os
 import uuid
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -30,6 +32,11 @@ from src.schemas.scripts import (
     ScriptListResponse,
     ScriptUpdate,
 )
+from src.services.file_extractor import decode_text, detect_fountain
+from src.services.fountain_parser import parse_fountain
+
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_EXTENSIONS = {".txt", ".fountain"}
 
 router = APIRouter()
 
@@ -123,6 +130,136 @@ async def delete_script(
     await _check_org_membership(org_id, current_user.id, db)
     script = await _get_script_or_404(script_id, production_id, org_id, db)
     await db.delete(script)
+
+
+# ============================================================
+# Upload
+# ============================================================
+
+
+@router.post("/upload", response_model=ScriptDetailResponse, status_code=status.HTTP_201_CREATED)
+async def upload_script(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    file: UploadFile,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """ファイルをアップロードして脚本を作成する。
+
+    Fountain 形式の場合はメタデータ・シーン・登場人物・セリフを自動解析する。
+    それ以外のテキストファイルはコンテンツのみ保存し、シーン等は手動登録。
+    """
+    await _check_org_membership(org_id, current_user.id, db)
+    await _get_production_or_404(production_id, org_id, db)
+
+    # 拡張子チェック
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"対応していないファイル形式です。対応形式: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    # チャンク読み込みでサイズを検証（全バッファリング前に拒否）
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(64 * 1024):
+        total += len(chunk)
+        if total > MAX_UPLOAD_SIZE:
+            raise HTTPException(status_code=400, detail="ファイルサイズが上限（10MB）を超えています")
+        chunks.append(chunk)
+    raw = b"".join(chunks)
+
+    # テキストデコード
+    text = decode_text(raw)
+
+    # Fountain 判定
+    is_fountain = ext == ".fountain" or detect_fountain(text)
+
+    if is_fountain:
+        parsed = parse_fountain(text)
+        meta = parsed.metadata
+
+        script = Script(
+            production_id=production_id,
+            uploaded_by=current_user.id,
+            title=_truncate(meta.title, 256) or os.path.splitext(filename)[0] or "無題",
+            content=text,
+            author=_truncate(meta.author, 256),
+            draft_date=_parse_draft_date(meta.draft_date),
+            copyright=_truncate(meta.copyright, 512),
+            contact=_truncate(meta.contact, 512),
+            notes=meta.notes,
+            synopsis=meta.synopsis,
+        )
+        db.add(script)
+        await db.flush()
+
+        # 登場人物を作成し、名前→IDのマップを構築
+        char_name_to_id: dict[str, uuid.UUID] = {}
+        for fc in parsed.characters:
+            char = Character(
+                script_id=script.id,
+                name=_truncate(fc.name, 128) or fc.name[:128],
+                description=fc.description,
+                sort_order=fc.sort_order,
+            )
+            db.add(char)
+            await db.flush()
+            char_name_to_id[fc.name] = char.id
+
+        # シーンとセリフを作成
+        for fs in parsed.scenes:
+            scene = Scene(
+                script_id=script.id,
+                act_number=fs.act_number,
+                scene_number=fs.scene_number,
+                heading=_truncate(fs.heading, 256) or fs.heading[:256],
+                description=fs.description,
+                sort_order=fs.sort_order,
+            )
+            db.add(scene)
+            await db.flush()
+
+            for fl in fs.lines:
+                # 未知のキャラクターを自動作成
+                char_id = None
+                if fl.character_name:
+                    if fl.character_name not in char_name_to_id:
+                        new_char = Character(
+                            script_id=script.id,
+                            name=_truncate(fl.character_name, 128) or fl.character_name[:128],
+                            sort_order=len(char_name_to_id),
+                        )
+                        db.add(new_char)
+                        await db.flush()
+                        char_name_to_id[fl.character_name] = new_char.id
+                    char_id = char_name_to_id[fl.character_name]
+
+                line = Line(
+                    scene_id=scene.id,
+                    character_id=char_id,
+                    content=fl.content,
+                    sort_order=fl.sort_order,
+                )
+                db.add(line)
+
+        await db.flush()
+    else:
+        # 非 Fountain: テキストのみ保存
+        title = os.path.splitext(filename)[0] or "無題"
+        script = Script(
+            production_id=production_id,
+            uploaded_by=current_user.id,
+            title=title,
+            content=text,
+        )
+        db.add(script)
+        await db.flush()
+
+    return await _load_script_detail(script.id, production_id, org_id, db)
 
 
 # ============================================================
@@ -388,6 +525,28 @@ async def delete_line(
 # ============================================================
 # ヘルパー
 # ============================================================
+
+def _truncate(value: str | None, max_len: int) -> str | None:
+    """文字列を DB カラムの最大長に切り詰める。"""
+    if value is None:
+        return None
+    return value[:max_len]
+
+
+_DRAFT_DATE_FORMATS = ["%Y-%m-%d", "%Y/%m/%d", "%Y年%m月%d日"]
+
+
+def _parse_draft_date(value: str | None) -> datetime | None:
+    """Fountain の Draft date 文字列を datetime に変換する。"""
+    if not value:
+        return None
+    for fmt in _DRAFT_DATE_FORMATS:
+        try:
+            dt = datetime.strptime(value.strip(), fmt)
+            return dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
 
 
 async def _check_org_membership(org_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> None:
