@@ -121,6 +121,22 @@ INT. 部屋
         assert result.characters[1].name == "花子"
         assert result.characters[2].name == "次郎"
 
+    def test_empty_characters_section(self):
+        """空の登場人物セクションは二重空行で終了し、後続テキストを汚染しない。"""
+        text = """\
+Title: テスト
+
+# 登場人物
+
+
+これはあらすじです。
+
+INT. 部屋 - 朝
+"""
+        result = parse_fountain(text)
+        assert result.characters == []
+        assert "あらすじ" in result.metadata.synopsis
+
     def test_no_characters_section(self):
         text = """\
 Title: テスト

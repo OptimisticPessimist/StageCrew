@@ -194,11 +194,10 @@ def _parse_characters_section(lines: list[str]) -> list[FountainCharacter]:
             continue
 
         if in_section:
-            # 二重空行で終了（ただしエントリが1つ以上ある場合のみ）
-            # 単一空行はグループ区切りとしてスキップ
+            # 二重空行で終了、単一空行はグループ区切りとしてスキップ
             if stripped == "":
                 blank_count += 1
-                if blank_count >= 2 and characters:
+                if blank_count >= 2:
                     break
                 continue
             blank_count = 0
@@ -285,7 +284,6 @@ def _strip_characters_section(lines: list[str]) -> list[str]:
     """登場人物セクションを除去したリストを返す。"""
     result: list[str] = []
     in_section = False
-    found_any = False
     blank_count = 0
 
     for line in lines:
@@ -293,18 +291,16 @@ def _strip_characters_section(lines: list[str]) -> list[str]:
 
         if _CHARACTERS_HEADING_RE.match(stripped):
             in_section = True
-            found_any = False
             blank_count = 0
             continue
 
         if in_section:
             if stripped == "":
                 blank_count += 1
-                if blank_count >= 2 and found_any:
+                if blank_count >= 2:
                     in_section = False
                 continue
             blank_count = 0
-            found_any = True
             if stripped.startswith("#") or _SCENE_HEADING_RE.match(stripped):
                 in_section = False
                 result.append(line)
