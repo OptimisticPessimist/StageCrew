@@ -349,9 +349,10 @@ def _parse_dialogue(
             current_character = name_candidate
             continue
 
-        # 大文字のみの行もキャラクター名候補（西洋スタイル）
+        # 大文字のみの行もキャラクター名候補（西洋 ASCII スタイル）
         if (
             stripped == stripped.upper()
+            and stripped.replace(" ", "").isascii()
             and stripped.replace(" ", "").isalpha()
             and len(stripped) > 1
         ):

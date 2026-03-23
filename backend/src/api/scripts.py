@@ -185,7 +185,7 @@ async def upload_script(
         script = Script(
             production_id=production_id,
             uploaded_by=current_user.id,
-            title=_truncate(meta.title, 256) or os.path.splitext(filename)[0] or "無題",
+            title=_truncate(meta.title, 256) or _truncate(os.path.splitext(filename)[0], 256) or "無題",
             content=text,
             author=_truncate(meta.author, 256),
             draft_date=_parse_draft_date(meta.draft_date),
@@ -249,7 +249,7 @@ async def upload_script(
         await db.flush()
     else:
         # 非 Fountain: テキストのみ保存
-        title = os.path.splitext(filename)[0] or "無題"
+        title = _truncate(os.path.splitext(filename)[0], 256) or "無題"
         script = Script(
             production_id=production_id,
             uploaded_by=current_user.id,
