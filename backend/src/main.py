@@ -21,6 +21,7 @@ from src.api import (
     phases,
     production_members,
     productions,
+    scripts,
     statuses,
 )
 from src.core.config import settings
@@ -100,6 +101,11 @@ app.include_router(
     milestones.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/milestones",
     tags=["milestones"],
+)
+app.include_router(
+    scripts.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/scripts",
+    tags=["scripts"],
 )
 app.include_router(
     comments.router,

@@ -117,6 +117,7 @@ class Production(Base):
     milestones: Mapped[list["Milestone"]] = relationship(back_populates="production")
     issues: Mapped[list["Issue"]] = relationship(back_populates="production")
     labels: Mapped[list["Label"]] = relationship(back_populates="production")
+    scripts: Mapped[list["Script"]] = relationship(back_populates="production")
 
 
 # ============================================================
@@ -358,3 +359,93 @@ class Comment(Base):
 
     issue: Mapped["Issue"] = relationship(back_populates="comments")
     user: Mapped["User"] = relationship()
+
+
+# ============================================================
+# Script (脚本)
+# ============================================================
+class Script(Base):
+    __tablename__ = "scripts"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    production_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("productions.id", ondelete="CASCADE"))
+    title: Mapped[str] = mapped_column(String(256))
+    content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    author: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    draft_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, default=1)
+    revision_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    copyright: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    contact: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_orientation: Mapped[str] = mapped_column(String(16), default="landscape")  # landscape | portrait
+    pdf_writing_direction: Mapped[str] = mapped_column(String(16), default="vertical")  # vertical | horizontal
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    public_terms: Mapped[str | None] = mapped_column(Text, nullable=True)
+    public_contact: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    production: Mapped["Production"] = relationship(back_populates="scripts")
+    uploader: Mapped["User"] = relationship()
+    scenes: Mapped[list["Scene"]] = relationship(back_populates="script", cascade="all, delete-orphan")
+    characters: Mapped[list["Character"]] = relationship(back_populates="script", cascade="all, delete-orphan")
+
+
+# ============================================================
+# Scene (シーン)
+# ============================================================
+class Scene(Base):
+    __tablename__ = "scenes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    script_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scripts.id", ondelete="CASCADE"))
+    act_number: Mapped[int] = mapped_column(Integer, default=1)
+    scene_number: Mapped[int] = mapped_column(Integer, default=1)
+    heading: Mapped[str] = mapped_column(String(256))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    script: Mapped["Script"] = relationship(back_populates="scenes")
+    lines: Mapped[list["Line"]] = relationship(back_populates="scene", cascade="all, delete-orphan")
+
+
+# ============================================================
+# Character (登場人物)
+# ============================================================
+class Character(Base):
+    __tablename__ = "characters"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    script_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scripts.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(128))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    script: Mapped["Script"] = relationship(back_populates="characters")
+    lines: Mapped[list["Line"]] = relationship(back_populates="character")
+
+
+# ============================================================
+# Line (セリフ)
+# ============================================================
+class Line(Base):
+    __tablename__ = "lines"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scene_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenes.id", ondelete="CASCADE"))
+    character_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("characters.id", ondelete="SET NULL"), nullable=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    scene: Mapped["Scene"] = relationship(back_populates="lines")
+    character: Mapped["Character | None"] = relationship(back_populates="lines")
