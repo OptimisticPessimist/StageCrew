@@ -260,6 +260,26 @@ Hi there!
         assert lines[0].content == "Hello, world!"
         assert lines[1].character_name == "MARY"
 
+    def test_at_prefix_character_cue(self):
+        """@プレフィックスで強制キャラクター名を検出する。"""
+        text = """\
+Title: テスト
+
+INT. 部屋
+
+@吉村
+こんにちは
+
+@田中
+こんにちは、吉村さん。
+"""
+        result = parse_fountain(text)
+        lines = result.scenes[0].lines
+        assert len(lines) == 2
+        assert lines[0].character_name == "吉村"
+        assert lines[0].content == "こんにちは"
+        assert lines[1].character_name == "田中"
+
     def test_japanese_cue_without_characters_section(self):
         """# 登場人物 セクションがなくても日本語キャラ名：で検出される。"""
         text = """\

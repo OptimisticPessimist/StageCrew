@@ -342,6 +342,13 @@ def _parse_dialogue(
             current_character = None
             continue
 
+        # @プレフィックス: Fountain の強制キャラクター名（@吉村 → 吉村）
+        if stripped.startswith("@") and len(stripped) > 1:
+            _flush()
+            current_character = stripped[1:].strip()
+            known_names.add(current_character)
+            continue
+
         # キャラクター名の検出
         name_candidate = re.sub(r"[:：]\s*$", "", stripped)
         if name_candidate in known_names:
