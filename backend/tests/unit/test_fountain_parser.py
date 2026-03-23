@@ -280,6 +280,23 @@ INT. 部屋
         assert lines[0].content == "こんにちは"
         assert lines[1].character_name == "田中"
 
+    def test_at_in_dialogue_not_mistaken_as_cue(self):
+        """セリフ中の @... はキャラクター名として誤検出されない。"""
+        text = """\
+Title: テスト
+
+INT. 部屋
+
+@吉村
+@allのみんな、聞いてくれ。
+明日は本番だ。
+"""
+        result = parse_fountain(text)
+        lines = result.scenes[0].lines
+        assert len(lines) == 1
+        assert lines[0].character_name == "吉村"
+        assert "@allのみんな" in lines[0].content
+
     def test_japanese_cue_without_characters_section(self):
         """# 登場人物 セクションがなくても日本語キャラ名：で検出される。"""
         text = """\

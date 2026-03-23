@@ -318,6 +318,7 @@ def _parse_dialogue(
     order = 0
     current_character: str | None = None
     dialogue_buffer: list[str] = []
+    after_blank = True  # シーン冒頭も空行直後と同等
 
     def _flush() -> None:
         nonlocal order, current_character, dialogue_buffer
@@ -340,13 +341,16 @@ def _parse_dialogue(
         if stripped == "":
             _flush()
             current_character = None
+            after_blank = True
             continue
 
         # @プレフィックス: Fountain の強制キャラクター名（@吉村 → 吉村）
-        if stripped.startswith("@") and len(stripped) > 1:
+        # 空行直後のときのみ発動し、セリフ中の @... を誤検出しない
+        if stripped.startswith("@") and len(stripped) > 1 and after_blank:
             _flush()
             current_character = stripped[1:].strip()
             known_names.add(current_character)
+            after_blank = False
             continue
 
         # キャラクター名の検出
@@ -379,6 +383,7 @@ def _parse_dialogue(
                 known_names.add(current_character)
                 continue
 
+        after_blank = False
         dialogue_buffer.append(stripped)
 
     _flush()
