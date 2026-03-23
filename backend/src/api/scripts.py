@@ -507,4 +507,10 @@ async def _load_script_detail(
     if script is None:
         raise HTTPException(status_code=404, detail="脚本が見つかりません")
 
+    # ネストコレクションを安定したソート順で返す
+    script.scenes.sort(key=lambda s: (s.sort_order, s.act_number, s.scene_number))
+    for scene in script.scenes:
+        scene.lines.sort(key=lambda ln: ln.sort_order)
+    script.characters.sort(key=lambda c: (c.sort_order, c.name))
+
     return ScriptDetailResponse.model_validate(script)
