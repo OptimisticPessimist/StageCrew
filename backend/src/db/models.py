@@ -380,6 +380,7 @@ class Script(Base):
     copyright: Mapped[str | None] = mapped_column(String(512), nullable=True)
     contact: Mapped[str | None] = mapped_column(String(512), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    synopsis: Mapped[str | None] = mapped_column(Text, nullable=True)
     pdf_orientation: Mapped[str] = mapped_column(String(16), default="landscape")  # landscape | portrait
     pdf_writing_direction: Mapped[str] = mapped_column(String(16), default="vertical")  # vertical | horizontal
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)

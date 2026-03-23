@@ -23,7 +23,6 @@ from src.schemas.scripts import (
     LineResponse,
     LineUpdate,
     SceneCreate,
-    SceneDetailResponse,
     SceneResponse,
     SceneUpdate,
     ScriptCreate,
@@ -51,11 +50,7 @@ async def list_scripts(
     await _check_org_membership(org_id, current_user.id, db)
     await _get_production_or_404(production_id, org_id, db)
 
-    stmt = (
-        select(Script)
-        .where(Script.production_id == production_id)
-        .order_by(Script.created_at.desc())
-    )
+    stmt = select(Script).where(Script.production_id == production_id).order_by(Script.created_at.desc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -80,7 +75,7 @@ async def create_script(
     db.add(script)
     await db.flush()
 
-    return await _load_script_detail(script.id, production_id, db)
+    return await _load_script_detail(script.id, production_id, org_id, db)
 
 
 @router.get("/{script_id}", response_model=ScriptDetailResponse)
@@ -93,7 +88,7 @@ async def get_script(
 ):
     """脚本の詳細を取得"""
     await _check_org_membership(org_id, current_user.id, db)
-    return await _load_script_detail(script_id, production_id, db)
+    return await _load_script_detail(script_id, production_id, org_id, db)
 
 
 @router.patch("/{script_id}", response_model=ScriptDetailResponse)
@@ -107,13 +102,13 @@ async def update_script(
 ):
     """脚本を更新"""
     await _check_org_membership(org_id, current_user.id, db)
-    script = await _get_script_or_404(script_id, production_id, db)
+    script = await _get_script_or_404(script_id, production_id, org_id, db)
 
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(script, key, value)
 
     await db.flush()
-    return await _load_script_detail(script.id, production_id, db)
+    return await _load_script_detail(script.id, production_id, org_id, db)
 
 
 @router.delete("/{script_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -126,7 +121,7 @@ async def delete_script(
 ):
     """脚本を削除"""
     await _check_org_membership(org_id, current_user.id, db)
-    script = await _get_script_or_404(script_id, production_id, db)
+    script = await _get_script_or_404(script_id, production_id, org_id, db)
     await db.delete(script)
 
 
@@ -145,7 +140,7 @@ async def list_scenes(
 ):
     """シーン一覧を取得"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
 
     stmt = (
         select(Scene)
@@ -167,7 +162,7 @@ async def create_scene(
 ):
     """シーンを作成"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
 
     scene = Scene(script_id=script_id, **body.model_dump())
     db.add(scene)
@@ -187,7 +182,7 @@ async def update_scene(
 ):
     """シーンを更新"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     scene = await _get_scene_or_404(scene_id, script_id, db)
 
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -208,7 +203,7 @@ async def delete_scene(
 ):
     """シーンを削除"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     scene = await _get_scene_or_404(scene_id, script_id, db)
     await db.delete(scene)
 
@@ -228,13 +223,9 @@ async def list_characters(
 ):
     """登場人物一覧を取得"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
 
-    stmt = (
-        select(Character)
-        .where(Character.script_id == script_id)
-        .order_by(Character.sort_order, Character.name)
-    )
+    stmt = select(Character).where(Character.script_id == script_id).order_by(Character.sort_order, Character.name)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -250,7 +241,7 @@ async def create_character(
 ):
     """登場人物を作成"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
 
     character = Character(script_id=script_id, **body.model_dump())
     db.add(character)
@@ -270,7 +261,7 @@ async def update_character(
 ):
     """登場人物を更新"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     character = await _get_character_or_404(character_id, script_id, db)
 
     for key, value in body.model_dump(exclude_unset=True).items():
@@ -291,7 +282,7 @@ async def delete_character(
 ):
     """登場人物を削除"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     character = await _get_character_or_404(character_id, script_id, db)
     await db.delete(character)
 
@@ -312,14 +303,10 @@ async def list_lines(
 ):
     """セリフ一覧を取得"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     await _get_scene_or_404(scene_id, script_id, db)
 
-    stmt = (
-        select(Line)
-        .where(Line.scene_id == scene_id)
-        .order_by(Line.sort_order)
-    )
+    stmt = select(Line).where(Line.scene_id == scene_id).order_by(Line.sort_order)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -340,8 +327,11 @@ async def create_line(
 ):
     """セリフを作成"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     await _get_scene_or_404(scene_id, script_id, db)
+
+    if body.character_id is not None:
+        await _validate_character_in_script(body.character_id, script_id, db)
 
     line = Line(scene_id=scene_id, **body.model_dump())
     db.add(line)
@@ -362,11 +352,15 @@ async def update_line(
 ):
     """セリフを更新"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     await _get_scene_or_404(scene_id, script_id, db)
     line = await _get_line_or_404(line_id, scene_id, db)
 
-    for key, value in body.model_dump(exclude_unset=True).items():
+    update_data = body.model_dump(exclude_unset=True)
+    if "character_id" in update_data and update_data["character_id"] is not None:
+        await _validate_character_in_script(update_data["character_id"], script_id, db)
+
+    for key, value in update_data.items():
         setattr(line, key, value)
 
     await db.flush()
@@ -385,7 +379,7 @@ async def delete_line(
 ):
     """セリフを削除"""
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_script_or_404(script_id, production_id, db)
+    await _get_script_or_404(script_id, production_id, org_id, db)
     await _get_scene_or_404(scene_id, script_id, db)
     line = await _get_line_or_404(line_id, scene_id, db)
     await db.delete(line)
@@ -417,9 +411,17 @@ async def _get_production_or_404(production_id: uuid.UUID, org_id: uuid.UUID, db
     return production
 
 
-async def _get_script_or_404(script_id: uuid.UUID, production_id: uuid.UUID, db: AsyncSession) -> Script:
+async def _get_script_or_404(
+    script_id: uuid.UUID, production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession
+) -> Script:
     result = await db.execute(
-        select(Script).where(Script.id == script_id, Script.production_id == production_id)
+        select(Script)
+        .join(Production, Script.production_id == Production.id)
+        .where(
+            Script.id == script_id,
+            Script.production_id == production_id,
+            Production.organization_id == org_id,
+        )
     )
     script = result.scalar_one_or_none()
     if script is None:
@@ -428,19 +430,27 @@ async def _get_script_or_404(script_id: uuid.UUID, production_id: uuid.UUID, db:
 
 
 async def _get_scene_or_404(scene_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Scene:
-    result = await db.execute(
-        select(Scene).where(Scene.id == scene_id, Scene.script_id == script_id)
-    )
+    result = await db.execute(select(Scene).where(Scene.id == scene_id, Scene.script_id == script_id))
     scene = result.scalar_one_or_none()
     if scene is None:
         raise HTTPException(status_code=404, detail="シーンが見つかりません")
     return scene
 
 
-async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Character:
+async def _validate_character_in_script(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> None:
+    """character_id が指定スクリプトに属するか検証"""
     result = await db.execute(
-        select(Character).where(Character.id == character_id, Character.script_id == script_id)
+        select(Character.id).where(Character.id == character_id, Character.script_id == script_id)
     )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="指定された登場人物はこの脚本に属していません",
+        )
+
+
+async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Character:
+    result = await db.execute(select(Character).where(Character.id == character_id, Character.script_id == script_id))
     character = result.scalar_one_or_none()
     if character is None:
         raise HTTPException(status_code=404, detail="登場人物が見つかりません")
@@ -448,19 +458,24 @@ async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, d
 
 
 async def _get_line_or_404(line_id: uuid.UUID, scene_id: uuid.UUID, db: AsyncSession) -> Line:
-    result = await db.execute(
-        select(Line).where(Line.id == line_id, Line.scene_id == scene_id)
-    )
+    result = await db.execute(select(Line).where(Line.id == line_id, Line.scene_id == scene_id))
     line = result.scalar_one_or_none()
     if line is None:
         raise HTTPException(status_code=404, detail="セリフが見つかりません")
     return line
 
 
-async def _load_script_detail(script_id: uuid.UUID, production_id: uuid.UUID, db: AsyncSession) -> ScriptDetailResponse:
+async def _load_script_detail(
+    script_id: uuid.UUID, production_id: uuid.UUID, org_id: uuid.UUID, db: AsyncSession
+) -> ScriptDetailResponse:
     stmt = (
         select(Script)
-        .where(Script.id == script_id, Script.production_id == production_id)
+        .join(Production, Script.production_id == Production.id)
+        .where(
+            Script.id == script_id,
+            Script.production_id == production_id,
+            Production.organization_id == org_id,
+        )
         .options(
             selectinload(Script.uploader),
             selectinload(Script.scenes).selectinload(Scene.lines),
@@ -471,5 +486,11 @@ async def _load_script_detail(script_id: uuid.UUID, production_id: uuid.UUID, db
     script = result.scalar_one_or_none()
     if script is None:
         raise HTTPException(status_code=404, detail="脚本が見つかりません")
+
+    # ネストコレクションを安定したソート順で返す
+    script.scenes.sort(key=lambda s: (s.sort_order, s.act_number, s.scene_number))
+    for scene in script.scenes:
+        scene.lines.sort(key=lambda ln: ln.sort_order)
+    script.characters.sort(key=lambda c: (c.sort_order, c.name))
 
     return ScriptDetailResponse.model_validate(script)

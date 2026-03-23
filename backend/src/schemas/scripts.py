@@ -1,12 +1,25 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+
+def _reject_null_fields(non_nullable: frozenset[str], data: Any) -> Any:
+    """PATCH リクエストで NOT NULL フィールドに null が送られたら拒否する。"""
+    if isinstance(data, dict):
+        for key in non_nullable & data.keys():
+            if data[key] is None:
+                raise ValueError(f"'{key}' は null にできません")
+    return data
 
 
 # ============================================================
 # Line (セリフ)
 # ============================================================
+_LINE_NON_NULLABLE = frozenset({"content", "sort_order"})
+
+
 class LineCreate(BaseModel):
     character_id: uuid.UUID | None = None
     content: str = Field(..., min_length=1)
@@ -17,6 +30,11 @@ class LineUpdate(BaseModel):
     character_id: uuid.UUID | None = None
     content: str | None = Field(None, min_length=1)
     sort_order: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_null_non_nullable(cls, data: Any) -> Any:
+        return _reject_null_fields(_LINE_NON_NULLABLE, data)
 
 
 class LineResponse(BaseModel):
@@ -33,6 +51,9 @@ class LineResponse(BaseModel):
 # ============================================================
 # Scene (シーン)
 # ============================================================
+_SCENE_NON_NULLABLE = frozenset({"heading", "act_number", "scene_number", "sort_order"})
+
+
 class SceneCreate(BaseModel):
     act_number: int = 1
     scene_number: int = 1
@@ -47,6 +68,11 @@ class SceneUpdate(BaseModel):
     heading: str | None = Field(None, min_length=1, max_length=256)
     description: str | None = None
     sort_order: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_null_non_nullable(cls, data: Any) -> Any:
+        return _reject_null_fields(_SCENE_NON_NULLABLE, data)
 
 
 class SceneResponse(BaseModel):
@@ -69,6 +95,9 @@ class SceneDetailResponse(SceneResponse):
 # ============================================================
 # Character (登場人物)
 # ============================================================
+_CHARACTER_NON_NULLABLE = frozenset({"name", "sort_order"})
+
+
 class CharacterCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     description: str | None = None
@@ -79,6 +108,11 @@ class CharacterUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=128)
     description: str | None = None
     sort_order: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_null_non_nullable(cls, data: Any) -> Any:
+        return _reject_null_fields(_CHARACTER_NON_NULLABLE, data)
 
 
 class CharacterResponse(BaseModel):
@@ -95,6 +129,9 @@ class CharacterResponse(BaseModel):
 # ============================================================
 # Script (脚本)
 # ============================================================
+_SCRIPT_NON_NULLABLE = frozenset({"title", "revision", "pdf_orientation", "pdf_writing_direction", "is_public"})
+
+
 class ScriptCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=256)
     content: str | None = None
@@ -105,6 +142,7 @@ class ScriptCreate(BaseModel):
     copyright: str | None = Field(None, max_length=512)
     contact: str | None = Field(None, max_length=512)
     notes: str | None = None
+    synopsis: str | None = None
     pdf_orientation: str = Field("landscape", pattern=r"^(landscape|portrait)$")
     pdf_writing_direction: str = Field("vertical", pattern=r"^(vertical|horizontal)$")
     is_public: bool = False
@@ -122,11 +160,17 @@ class ScriptUpdate(BaseModel):
     copyright: str | None = Field(None, max_length=512)
     contact: str | None = Field(None, max_length=512)
     notes: str | None = None
+    synopsis: str | None = None
     pdf_orientation: str | None = Field(None, pattern=r"^(landscape|portrait)$")
     pdf_writing_direction: str | None = Field(None, pattern=r"^(vertical|horizontal)$")
     is_public: bool | None = None
     public_terms: str | None = None
     public_contact: str | None = Field(None, max_length=512)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_null_non_nullable(cls, data: Any) -> Any:
+        return _reject_null_fields(_SCRIPT_NON_NULLABLE, data)
 
 
 class ScriptUploaderResponse(BaseModel):
@@ -141,6 +185,7 @@ class ScriptListResponse(BaseModel):
     title: str
     author: str | None
     revision: int
+    synopsis: str | None
     is_public: bool
     uploaded_by: uuid.UUID
     uploaded_at: datetime
@@ -157,6 +202,7 @@ class ScriptDetailResponse(ScriptListResponse):
     copyright: str | None
     contact: str | None
     notes: str | None
+    synopsis: str | None
     pdf_orientation: str
     pdf_writing_direction: str
     public_terms: str | None
