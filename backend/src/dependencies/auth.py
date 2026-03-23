@@ -1,5 +1,6 @@
 """認証dependency。JWTトークン検証またはDEBUGモードの開発用スタブ。"""
 
+import logging
 import uuid
 from dataclasses import dataclass
 
@@ -12,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import settings
 from src.db.base import get_db
 from src.db.models import User
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -57,6 +60,10 @@ async def get_current_user(
 
     # トークンなし + DEBUGモード: 開発用スタブ
     if settings.debug:
+        logger.warning(
+            "DEBUGモード: トークンなしのリクエストを開発ユーザーで処理します。"
+            " 意図しない場合はAuthorizationヘッダーを確認してください。"
+        )
         result = await db.execute(select(User).where(User.id == DEV_USER_ID))
         user = result.scalar_one_or_none()
         if user is None:

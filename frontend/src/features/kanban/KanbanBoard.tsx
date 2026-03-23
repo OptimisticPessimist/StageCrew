@@ -1,5 +1,5 @@
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
-import type { Issue, StatusDefinition } from "@/types";
+import type { Issue, StatusDefinition, StatusUpdate } from "@/types";
 import KanbanColumn from "./KanbanColumn";
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
   onMoveIssue: (issueId: string, newStatusId: string | null) => void;
   onCardClick: (issue: Issue) => void;
   onAddClick: (statusId: string | null) => void;
+  onUpdateStatus: (statusId: string, body: StatusUpdate) => void;
+  onDeleteStatus: (statusId: string) => void;
 }
 
 const UNCATEGORIZED_ID = "__uncategorized__";
@@ -18,6 +20,8 @@ export default function KanbanBoard({
   onMoveIssue,
   onCardClick,
   onAddClick,
+  onUpdateStatus,
+  onDeleteStatus,
 }: Props) {
   const issuesByStatus = new Map<string, Issue[]>();
 
@@ -71,6 +75,8 @@ export default function KanbanBoard({
             issues={issuesByStatus.get(status.id) ?? []}
             onCardClick={onCardClick}
             onAddClick={onAddClick}
+            onUpdateStatus={onUpdateStatus}
+            onDeleteStatus={onDeleteStatus}
           />
         ))}
       </div>

@@ -302,3 +302,21 @@ export interface DashboardResponse {
   my_tasks: DashboardIssue[];
   deadline_warnings: DeadlineWarnings;
 }
+
+// ---- Home ----
+export interface HomeIssue extends DashboardIssue {
+  production_id: string;
+  production_name: string;
+  organization_id: string;
+  organization_name: string;
+}
+
+export interface HomeDeadlineWarnings {
+  overdue: HomeIssue[];
+  near_deadline: HomeIssue[];
+}
+
+export interface HomeResponse {
+  my_tasks: HomeIssue[];
+  deadline_warnings: HomeDeadlineWarnings;
+}

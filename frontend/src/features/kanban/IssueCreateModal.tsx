@@ -1,8 +1,10 @@
 import { useState } from "react";
 import type { IssueCreate, StatusDefinition } from "@/types";
+import type { MemberOption } from "./IssueDetailPanel";
 
 interface Props {
   statuses: StatusDefinition[];
+  members: MemberOption[];
   defaultStatusId: string | null;
   onSubmit: (data: IssueCreate) => void;
   onClose: () => void;
@@ -10,6 +12,7 @@ interface Props {
 
 export default function IssueCreateModal({
   statuses,
+  members,
   defaultStatusId,
   onSubmit,
   onClose,
@@ -21,6 +24,15 @@ export default function IssueCreateModal({
   const [statusId, setStatusId] = useState<string>(defaultStatusId ?? "");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+
+  const toggleAssignee = (userId: string) => {
+    setAssigneeIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,12 +45,13 @@ export default function IssueCreateModal({
       status_id: statusId || null,
       start_date: startDate ? `${startDate}T00:00:00` : null,
       due_date: dueDate ? `${dueDate}T00:00:00` : null,
+      assignee_ids: assigneeIds.length > 0 ? assigneeIds : undefined,
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <div className="px-6 pt-5 pb-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -150,7 +163,41 @@ export default function IssueCreateModal({
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
                   />
                 </div>
-                <div></div>
+                <div />
+              </div>
+
+              {/* 担当者 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  担当者
+                </label>
+                {members.length === 0 ? (
+                  <p className="text-sm text-gray-400">
+                    公演メンバーがいません
+                  </p>
+                ) : (
+                  <div className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto">
+                    {members.map((m) => (
+                      <label
+                        key={m.user_id}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={assigneeIds.includes(m.user_id)}
+                          onChange={() => toggleAssignee(m.user_id)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="w-5 h-5 rounded-full bg-indigo-500 text-white text-xs flex items-center justify-center shrink-0">
+                          {m.display_name.charAt(0)}
+                        </div>
+                        <span className="text-sm text-gray-700">
+                          {m.display_name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

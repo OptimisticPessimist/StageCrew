@@ -16,6 +16,16 @@ function queryKey(orgId: string, productionId: string) {
   return ["issues", orgId, productionId] as const;
 }
 
+/** issues + issue-detail の両方を無効化するヘルパー */
+function invalidateAll(
+  qc: ReturnType<typeof useQueryClient>,
+  orgId: string,
+  productionId: string,
+) {
+  qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) });
+  qc.invalidateQueries({ queryKey: ["issue-detail", orgId, productionId] });
+}
+
 export function useIssues(orgId: string, productionId: string) {
   return useQuery({
     queryKey: queryKey(orgId, productionId),
@@ -43,13 +53,14 @@ export function useCreateIssue(orgId: string, productionId: string) {
   return useMutation({
     mutationFn: (body: IssueCreate) =>
       api.post<IssueDetail>(`${basePath(orgId, productionId)}/`, body),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) }),
+    onSuccess: () => invalidateAll(qc, orgId, productionId),
   });
 }
 
 export function useUpdateIssue(orgId: string, productionId: string) {
   const qc = useQueryClient();
+  const key = queryKey(orgId, productionId);
+
   return useMutation({
     mutationFn: ({
       issueId,
@@ -62,10 +73,23 @@ export function useUpdateIssue(orgId: string, productionId: string) {
         `${basePath(orgId, productionId)}/${issueId}`,
         body,
       ),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) });
-      qc.invalidateQueries({ queryKey: ["issue-detail"] });
+    // 楽観的更新: issueリストの該当課題を即座に反映
+    onMutate: async ({ issueId, body }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<Issue[]>(key);
+      qc.setQueryData<Issue[]>(key, (old) =>
+        old?.map((issue) =>
+          issue.id === issueId ? { ...issue, ...body } : issue,
+        ),
+      );
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        qc.setQueryData(key, context.previous);
+      }
+    },
+    onSettled: () => invalidateAll(qc, orgId, productionId),
   });
 }
 
@@ -74,8 +98,7 @@ export function useDeleteIssue(orgId: string, productionId: string) {
   return useMutation({
     mutationFn: (issueId: string) =>
       api.delete(`${basePath(orgId, productionId)}/${issueId}`),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) }),
+    onSuccess: () => invalidateAll(qc, orgId, productionId),
   });
 }
 
@@ -110,9 +133,7 @@ export function useUpdateIssueStatus(orgId: string, productionId: string) {
         qc.setQueryData(key, context.previous);
       }
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: key });
-    },
+    onSettled: () => invalidateAll(qc, orgId, productionId),
   });
 }
 
@@ -124,7 +145,6 @@ export function useBatchUpdateStatus(orgId: string, productionId: string) {
         `${basePath(orgId, productionId)}/batch-update-status`,
         { items },
       ),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) }),
+    onSuccess: () => invalidateAll(qc, orgId, productionId),
   });
 }

@@ -1,13 +1,20 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { Issue, IssueCreate } from "@/types";
-import { useStatuses, useCreateStatus } from "./hooks/useStatuses";
+import {
+  useStatuses,
+  useCreateStatus,
+  useUpdateStatus,
+  useDeleteStatus,
+} from "./hooks/useStatuses";
 import {
   useIssues,
   useIssueDetail,
   useCreateIssue,
+  useUpdateIssue,
   useUpdateIssueStatus,
 } from "./hooks/useIssues";
+import { useProductionMembers } from "@/features/members/hooks/useProductionMembers";
 import KanbanBoard from "./KanbanBoard";
 import IssueCreateModal from "./IssueCreateModal";
 import IssueDetailPanel from "./IssueDetailPanel";
@@ -27,6 +34,7 @@ export default function KanbanPage() {
   const [showStatusForm, setShowStatusForm] = useState(false);
   const [newStatusName, setNewStatusName] = useState("");
   const [newStatusColor, setNewStatusColor] = useState("#6366f1");
+  const [newStatusIsClosed, setNewStatusIsClosed] = useState(false);
 
   const {
     data: statuses = [],
@@ -44,9 +52,21 @@ export default function KanbanPage() {
     selectedIssueId,
   );
 
+  const { data: productionMembers = [] } = useProductionMembers(
+    orgId!,
+    productionId!,
+  );
+  const memberOptions = productionMembers.map((m) => ({
+    user_id: m.user_id,
+    display_name: m.display_name,
+  }));
+
   const createIssue = useCreateIssue(orgId!, productionId!);
+  const updateIssue = useUpdateIssue(orgId!, productionId!);
   const updateStatus = useUpdateIssueStatus(orgId!, productionId!);
   const createStatus = useCreateStatus(orgId!, productionId!);
+  const editStatus = useUpdateStatus(orgId!, productionId!);
+  const deleteStatus = useDeleteStatus(orgId!, productionId!);
 
   const handleMoveIssue = (issueId: string, newStatusId: string | null) => {
     updateStatus.mutate({ issueId, statusId: newStatusId });
@@ -75,10 +95,12 @@ export default function KanbanPage() {
         name: newStatusName.trim(),
         color: newStatusColor,
         sort_order: statuses.length,
+        is_closed: newStatusIsClosed,
       },
       {
         onSuccess: () => {
           setNewStatusName("");
+          setNewStatusIsClosed(false);
           setShowStatusForm(false);
         },
       },
@@ -133,6 +155,15 @@ export default function KanbanPage() {
                 className="rounded border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
                 autoFocus
               />
+              <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={newStatusIsClosed}
+                  onChange={(e) => setNewStatusIsClosed(e.target.checked)}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                完了
+              </label>
               <button
                 type="submit"
                 disabled={!newStatusName.trim()}
@@ -189,6 +220,12 @@ export default function KanbanPage() {
             onMoveIssue={handleMoveIssue}
             onCardClick={handleCardClick}
             onAddClick={handleAddClick}
+            onUpdateStatus={(statusId, body) =>
+              editStatus.mutate({ statusId, body })
+            }
+            onDeleteStatus={(statusId) =>
+              deleteStatus.mutate(statusId)
+            }
           />
         )}
       </main>
@@ -197,6 +234,7 @@ export default function KanbanPage() {
       {showCreateModal && (
         <IssueCreateModal
           statuses={statuses}
+          members={memberOptions}
           defaultStatusId={createDefaultStatusId}
           onSubmit={handleCreateIssue}
           onClose={() => setShowCreateModal(false)}
@@ -208,9 +246,13 @@ export default function KanbanPage() {
         <IssueDetailPanel
           issue={selectedIssue}
           statuses={statuses}
+          members={memberOptions}
           onClose={() => setSelectedIssueId(null)}
           onStatusChange={(issueId, statusId) =>
             updateStatus.mutate({ issueId, statusId })
+          }
+          onUpdate={(issueId, body) =>
+            updateIssue.mutate({ issueId, body })
           }
         />
       )}
