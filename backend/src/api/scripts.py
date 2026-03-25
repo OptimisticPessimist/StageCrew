@@ -1,8 +1,11 @@
 import os
+import re
 import uuid
 from datetime import UTC, datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -34,6 +37,7 @@ from src.schemas.scripts import (
 )
 from src.services.file_extractor import decode_text, detect_fountain
 from src.services.fountain_parser import parse_fountain
+from src.services.script_pdf import generate_script_pdf
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".txt", ".fountain"}
@@ -530,6 +534,60 @@ async def delete_line(
     await _get_scene_or_404(scene_id, script_id, db)
     line = await _get_line_or_404(line_id, scene_id, db)
     await db.delete(line)
+
+
+# ============================================================
+# PDF ダウンロード
+# ============================================================
+
+
+@router.get("/{script_id}/pdf")
+async def download_script_pdf(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    script_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """脚本をPDFとしてダウンロード"""
+    await _check_org_membership(org_id, current_user.id, db)
+
+    # Script + scenes(lines) + characters を eager load
+    stmt = (
+        select(Script)
+        .join(Production, Script.production_id == Production.id)
+        .where(
+            Script.id == script_id,
+            Script.production_id == production_id,
+            Production.organization_id == org_id,
+        )
+        .options(
+            selectinload(Script.scenes).selectinload(Scene.lines),
+            selectinload(Script.characters),
+        )
+    )
+    result = await db.execute(stmt)
+    script = result.scalar_one_or_none()
+    if script is None:
+        raise HTTPException(status_code=404, detail="脚本が見つかりません")
+
+    # ソート
+    script.scenes.sort(key=lambda s: (s.sort_order, s.act_number, s.scene_number))
+    for scene in script.scenes:
+        scene.lines.sort(key=lambda ln: ln.sort_order)
+    script.characters.sort(key=lambda c: (c.sort_order, c.name))
+
+    pdf_bytes = generate_script_pdf(script, script.scenes, script.characters)
+
+    # ファイル名をサニタイズ + RFC 5987 パーセントエンコード
+    safe_name = re.sub(r'[\\/:*?"<>|]', "_", script.title)
+    filename_encoded = quote(f"{safe_name}.pdf")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename_encoded}"},
+    )
 
 
 # ============================================================

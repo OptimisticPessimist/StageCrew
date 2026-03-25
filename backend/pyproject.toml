@@ -15,6 +15,7 @@ dependencies = [
     "httpx>=0.28.0",
     "python-multipart>=0.0.18",
     "chardet>=5.0.0",
+    "fpdf2>=2.8.0",
 ]
 
 [project.optional-dependencies]
