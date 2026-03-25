@@ -22,6 +22,7 @@ from src.api import (
     phases,
     production_members,
     productions,
+    scene_chart,
     scripts,
     statuses,
 )
@@ -112,6 +113,11 @@ app.include_router(
     castings.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/scripts/{script_id}/castings",
     tags=["castings"],
+)
+app.include_router(
+    scene_chart.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/scripts/{script_id}/scene-chart",
+    tags=["scene-chart"],
 )
 app.include_router(
     comments.router,

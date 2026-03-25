@@ -418,6 +418,9 @@ class Scene(Base):
 
     script: Mapped["Script"] = relationship(back_populates="scenes")
     lines: Mapped[list["Line"]] = relationship(back_populates="scene", cascade="all, delete-orphan")
+    scene_character_mappings: Mapped[list["SceneCharacterMapping"]] = relationship(
+        back_populates="scene", cascade="all, delete-orphan"
+    )
 
 
 # ============================================================
@@ -437,6 +440,9 @@ class Character(Base):
     lines: Mapped[list["Line"]] = relationship(back_populates="character")
     castings: Mapped[list["Casting"]] = relationship(
         back_populates="character", cascade="all, delete-orphan", order_by="Casting.sort_order"
+    )
+    scene_character_mappings: Mapped[list["SceneCharacterMapping"]] = relationship(
+        back_populates="character", cascade="all, delete-orphan"
     )
 
 
@@ -481,3 +487,25 @@ class Casting(Base):
 
     character: Mapped["Character"] = relationship(back_populates="castings")
     production_membership: Mapped["ProductionMembership"] = relationship(back_populates="castings")
+
+
+# ============================================================
+# SceneCharacterMapping (香盤表マッピング)
+# ============================================================
+class SceneCharacterMapping(Base):
+    __tablename__ = "scene_character_mappings"
+    __table_args__ = (UniqueConstraint("scene_id", "character_id", name="uq_scene_character_mapping"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scene_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenes.id", ondelete="CASCADE"))
+    character_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
+    appearance_type: Mapped[str] = mapped_column(String(16), default="dialogue")  # dialogue | silent | off_stage
+    is_auto_generated: Mapped[bool] = mapped_column(Boolean, default=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    scene: Mapped["Scene"] = relationship(back_populates="scene_character_mappings")
+    character: Mapped["Character"] = relationship(back_populates="scene_character_mappings")
