@@ -76,18 +76,18 @@ User（ユーザー）
 > 脚本のアップロードから配役・香盤表・PDF出力・通知までを一気通貫で扱う。
 
 ### 2-1. データモデル・基本CRUD
-- [ ] Script モデル（title, author, revision, draft_date, copyright, contact, notes 等）
-- [ ] Scene モデル（act_number, scene_number, heading, description）
-- [ ] Character モデル（name, description, order）
-- [ ] Line モデル（content, order, character_id, scene_id）
-- [ ] 脚本の一覧取得・詳細取得 API
-- [ ] 脚本の削除 API
+- [x] Script モデル（title, author, revision, draft_date, copyright, contact, notes 等）
+- [x] Scene モデル（act_number, scene_number, heading, description）
+- [x] Character モデル（name, description, order）
+- [x] Line モデル（content, order, character_id, scene_id）
+- [x] 脚本の一覧取得・詳細取得 API
+- [x] 脚本の削除 API
 
 ### 2-2. アップロード・パース
-- [ ] ファイルアップロード API（汎用：テキスト / PDF / Word 等）
-- [ ] Fountain 形式パーサー（メタデータ抽出、シーン・登場人物・セリフの自動解析）
-- [ ] マルチエンコーディング対応（UTF-8, Shift_JIS 等）
-- [ ] Fountain 以外のフォーマット：手動でシーン・登場人物を登録する API
+- [x] ファイルアップロード API（テキスト / Fountain）※ PDF/Word は Discord 管理
+- [x] Fountain 形式パーサー（メタデータ抽出、シーン・登場人物・セリフの自動解析）
+- [x] マルチエンコーディング対応（UTF-8, Shift_JIS 等）
+- [x] Fountain 以外のフォーマット：手動でシーン・登場人物を登録する API
 
 ### 2-3. キャスティング（配役）
 - [ ] 登場人物へのキャスト割当 API（ダブルキャスト対応）
