@@ -247,6 +247,11 @@ async def upload_script(
                 db.add(line)
 
         await db.flush()
+
+        # 香盤表を自動生成
+        from src.services.scene_chart import generate_scene_chart_mappings
+
+        await generate_scene_chart_mappings(script.id, db)
     else:
         # 非 Fountain: テキストのみ保存
         title = _truncate(os.path.splitext(filename)[0], 256) or "無題"
