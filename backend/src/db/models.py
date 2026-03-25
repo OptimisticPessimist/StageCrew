@@ -8,6 +8,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
@@ -137,6 +138,9 @@ class ProductionMembership(Base):
     user: Mapped["User"] = relationship()
     production: Mapped["Production"] = relationship(back_populates="production_memberships")
     department_memberships: Mapped[list["DepartmentMembership"]] = relationship(back_populates="production_membership")
+    castings: Mapped[list["Casting"]] = relationship(
+        back_populates="production_membership", cascade="all, delete-orphan"
+    )
 
 
 # ============================================================
@@ -431,6 +435,9 @@ class Character(Base):
 
     script: Mapped["Script"] = relationship(back_populates="characters")
     lines: Mapped[list["Line"]] = relationship(back_populates="character")
+    castings: Mapped[list["Casting"]] = relationship(
+        back_populates="character", cascade="all, delete-orphan", order_by="Casting.sort_order"
+    )
 
 
 # ============================================================
@@ -450,3 +457,27 @@ class Line(Base):
 
     scene: Mapped["Scene"] = relationship(back_populates="lines")
     character: Mapped["Character | None"] = relationship(back_populates="lines")
+
+
+# ============================================================
+# Casting (配役)
+# ============================================================
+class Casting(Base):
+    __tablename__ = "castings"
+    __table_args__ = (UniqueConstraint("character_id", "production_membership_id", name="uq_casting_character_member"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    character_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("characters.id", ondelete="CASCADE"))
+    production_membership_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("production_memberships.id", ondelete="CASCADE")
+    )
+    display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    memo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    character: Mapped["Character"] = relationship(back_populates="castings")
+    production_membership: Mapped["ProductionMembership"] = relationship(back_populates="castings")

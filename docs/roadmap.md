@@ -31,6 +31,7 @@ Organization（団体）
       └── Script（脚本）  ← Phase 2
            ├── Scene（シーン）
            ├── Character（登場人物）
+           │    └── Casting（配役） → ProductionMembership
            ├── Line（セリフ）
            └── SceneChart（香盤表）
 ```
@@ -90,9 +91,9 @@ User（ユーザー）
 - [x] Fountain 以外のフォーマット：手動でシーン・登場人物を登録する API
 
 ### 2-3. キャスティング（配役）
-- [ ] 登場人物へのキャスト割当 API（ダブルキャスト対応）
-- [ ] 表示名・キャストメモの管理
-- [ ] 脚本更新時のキャスティング情報保持
+- [x] 登場人物へのキャスト割当 API（ダブルキャスト対応）
+- [x] 表示名・キャストメモの管理
+- [x] 脚本更新時のキャスティング情報保持
 
 ### 2-4. 香盤表（Scene Chart）
 - [ ] 香盤表データモデル（SceneChart / SceneCharacterMapping）

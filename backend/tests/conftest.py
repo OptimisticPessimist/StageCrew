@@ -17,6 +17,7 @@ from sqlalchemy.sql.operators import nulls_first_op, nulls_last_op
 from src.core.config import settings
 from src.db.base import Base, get_db
 from src.db.models import (
+    Casting,
     Character,
     Department,
     Line,
@@ -328,3 +329,22 @@ async def line(db_session: AsyncSession, scene: Scene, character: Character) -> 
     db_session.add(ln)
     await db_session.flush()
     return ln
+
+
+@pytest.fixture
+async def casting(
+    db_session: AsyncSession,
+    character: Character,
+    production: tuple[Production, ProductionMembership],
+) -> Casting:
+    _, pm = production
+    c = Casting(
+        character_id=character.id,
+        production_membership_id=pm.id,
+        display_name="テスト芸名",
+        memo="テストメモ",
+        sort_order=0,
+    )
+    db_session.add(c)
+    await db_session.flush()
+    return c

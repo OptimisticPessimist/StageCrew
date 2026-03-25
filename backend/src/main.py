@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import (
     auth,
+    castings,
     comments,
     dashboard,
     departments,
@@ -106,6 +107,11 @@ app.include_router(
     scripts.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/scripts",
     tags=["scripts"],
+)
+app.include_router(
+    castings.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/scripts/{script_id}/castings",
+    tags=["castings"],
 )
 app.include_router(
     comments.router,

@@ -115,6 +115,18 @@ class CharacterUpdate(BaseModel):
         return _reject_null_fields(_CHARACTER_NON_NULLABLE, data)
 
 
+class CharacterCastingResponse(BaseModel):
+    """Character に埋め込むキャスティング情報。"""
+
+    id: uuid.UUID
+    production_membership_id: uuid.UUID
+    display_name: str | None
+    memo: str | None
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
 class CharacterResponse(BaseModel):
     id: uuid.UUID
     script_id: uuid.UUID
@@ -122,6 +134,7 @@ class CharacterResponse(BaseModel):
     description: str | None
     sort_order: int
     created_at: datetime
+    castings: list[CharacterCastingResponse] = []
 
     model_config = {"from_attributes": True}
 
