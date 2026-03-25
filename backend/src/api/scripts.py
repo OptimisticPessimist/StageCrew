@@ -362,7 +362,12 @@ async def list_characters(
     await _check_org_membership(org_id, current_user.id, db)
     await _get_script_or_404(script_id, production_id, org_id, db)
 
-    stmt = select(Character).where(Character.script_id == script_id).order_by(Character.sort_order, Character.name)
+    stmt = (
+        select(Character)
+        .where(Character.script_id == script_id)
+        .options(selectinload(Character.castings))
+        .order_by(Character.sort_order, Character.name)
+    )
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -383,7 +388,7 @@ async def create_character(
     character = Character(script_id=script_id, **body.model_dump())
     db.add(character)
     await db.flush()
-    return character
+    return await _load_character_with_castings(character.id, script_id, db)
 
 
 @router.patch("/{script_id}/characters/{character_id}", response_model=CharacterResponse)
@@ -405,7 +410,7 @@ async def update_character(
         setattr(character, key, value)
 
     await db.flush()
-    return character
+    return await _load_character_with_castings(character.id, script_id, db)
 
 
 @router.delete("/{script_id}/characters/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -609,6 +614,18 @@ async def _validate_character_in_script(character_id: uuid.UUID, script_id: uuid
         )
 
 
+async def _load_character_with_castings(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Character:
+    result = await db.execute(
+        select(Character)
+        .where(Character.id == character_id, Character.script_id == script_id)
+        .options(selectinload(Character.castings))
+    )
+    character = result.scalar_one_or_none()
+    if character is None:
+        raise HTTPException(status_code=404, detail="登場人物が見つかりません")
+    return character
+
+
 async def _get_character_or_404(character_id: uuid.UUID, script_id: uuid.UUID, db: AsyncSession) -> Character:
     result = await db.execute(select(Character).where(Character.id == character_id, Character.script_id == script_id))
     character = result.scalar_one_or_none()
@@ -639,7 +656,7 @@ async def _load_script_detail(
         .options(
             selectinload(Script.uploader),
             selectinload(Script.scenes).selectinload(Scene.lines),
-            selectinload(Script.characters),
+            selectinload(Script.characters).selectinload(Character.castings),
         )
     )
     result = await db.execute(stmt)
