@@ -17,9 +17,6 @@ async def generate_scene_chart_mappings(
     preserve_manual=True の場合、手動追加されたマッピングを保持し
     自動生成分のみ再作成する。
     """
-    # この脚本のシーン ID 一覧
-    scene_ids_subq = select(Scene.id).where(Scene.script_id == script_id).scalar_subquery()
-
     # 既存マッピングを削除
     if preserve_manual:
         del_stmt = delete(SceneCharacterMapping).where(

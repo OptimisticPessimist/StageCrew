@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class AppearanceType(str, Enum):
+class AppearanceType(StrEnum):
     dialogue = "dialogue"  # セリフあり
     silent = "silent"  # セリフなし・舞台に登場
     off_stage = "off_stage"  # 声のみ・舞台外
