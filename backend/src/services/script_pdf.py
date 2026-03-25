@@ -44,17 +44,17 @@ _V_CHAR_SPACING = 2
 
 # 縦書き用の句読点・括弧変換マップ
 _VERTICAL_PUNCTUATION: dict[str, str] = {
-    "\u3001": "\uFE11",  # 、→ ︑
-    "\u3002": "\uFE12",  # 。→ ︒
-    "\uFF0C": "\uFE10",  # ，→ ︐
-    "\u300C": "\uFE41",  # 「→ ﹁
-    "\u300D": "\uFE42",  # 」→ ﹂
-    "\u300E": "\uFE43",  # 『→ ﹃
-    "\u300F": "\uFE44",  # 』→ ﹄
-    "\uFF08": "\uFE35",  # （→ ︵
-    "\uFF09": "\uFE36",  # ）→ ︶
-    "\u2014": "\uFE31",  # —→ ︱
-    "\u2026": "\uFE19",  # …→ ︙
+    "\u3001": "\ufe11",  # 、→ ︑
+    "\u3002": "\ufe12",  # 。→ ︒
+    "\uff0c": "\ufe10",  # ，→ ︐
+    "\u300c": "\ufe41",  # 「→ ﹁
+    "\u300d": "\ufe42",  # 」→ ﹂
+    "\u300e": "\ufe43",  # 『→ ﹃
+    "\u300f": "\ufe44",  # 』→ ﹄
+    "\uff08": "\ufe35",  # （→ ︵
+    "\uff09": "\ufe36",  # ）→ ︶
+    "\u2014": "\ufe31",  # —→ ︱
+    "\u2026": "\ufe19",  # …→ ︙
 }
 
 # 縦書き時に回転が必要な文字（半角英数等）
@@ -186,9 +186,7 @@ def _render_title_page(pdf: _ScriptPDF, script: Any) -> None:
 # ============================================================
 # 横書き本文
 # ============================================================
-def _render_body_horizontal(
-    pdf: _ScriptPDF, scenes: list[Any], char_map: dict[uuid.UUID, str]
-) -> None:
+def _render_body_horizontal(pdf: _ScriptPDF, scenes: list[Any], char_map: dict[uuid.UUID, str]) -> None:
     """横書きレイアウトで本文を描画する。"""
     pdf.set_margins(_H_MARGIN_LEFT, _H_MARGIN_TOP, _H_MARGIN_RIGHT)
     usable_w = pdf.w - _H_MARGIN_LEFT - _H_MARGIN_RIGHT
@@ -242,9 +240,7 @@ def _render_body_horizontal(
 # ============================================================
 # 縦書き本文
 # ============================================================
-def _render_body_vertical(
-    pdf: _ScriptPDF, scenes: list[Any], char_map: dict[uuid.UUID, str]
-) -> None:
+def _render_body_vertical(pdf: _ScriptPDF, scenes: list[Any], char_map: dict[uuid.UUID, str]) -> None:
     """縦書きレイアウトで本文を描画する。"""
     page_w = pdf.w
     page_h = pdf.h
