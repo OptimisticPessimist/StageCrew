@@ -1,4 +1,6 @@
+import logging
 import os
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -32,8 +34,16 @@ from src.schemas.scripts import (
     ScriptListResponse,
     ScriptUpdate,
 )
+from src.services.discord_webhook import notify_script_uploaded
 from src.services.file_extractor import decode_text, detect_fountain
 from src.services.fountain_parser import parse_fountain
+
+logger = logging.getLogger(__name__)
+
+try:
+    from src.services.script_pdf import generate_script_pdf
+except ImportError:
+    generate_script_pdf = None  # type: ignore[assignment,misc]
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".txt", ".fountain"}
@@ -151,7 +161,7 @@ async def upload_script(
     それ以外のテキストファイルはコンテンツのみ保存し、シーン等は手動登録。
     """
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_production_or_404(production_id, org_id, db)
+    production = await _get_production_or_404(production_id, org_id, db)
 
     # 拡張子チェック
     filename = file.filename or ""
@@ -177,6 +187,9 @@ async def upload_script(
 
     # Fountain 判定
     is_fountain = ext == ".fountain" or detect_fountain(text)
+
+    scene_count = 0
+    character_count = 0
 
     if is_fountain:
         parsed = parse_fountain(text)
@@ -252,6 +265,9 @@ async def upload_script(
         from src.services.scene_chart import generate_scene_chart_mappings
 
         await generate_scene_chart_mappings(script.id, db)
+
+        scene_count = len(parsed.scenes)
+        character_count = len(char_name_to_id)
     else:
         # 非 Fountain: テキストのみ保存
         title = _truncate(os.path.splitext(filename)[0], 256) or "無題"
@@ -264,7 +280,24 @@ async def upload_script(
         db.add(script)
         await db.flush()
 
-    return await _load_script_detail(script.id, production_id, org_id, db)
+    # 詳細ロード（scenes, characters を eager load）
+    detail = await _load_script_detail(script.id, production_id, org_id, db)
+
+    # Discord 通知（PDF 添付付き）
+    pdf_bytes, pdf_filename = _try_generate_pdf_from_detail(detail)
+    notify_script_uploaded(
+        production.discord_webhook_url,
+        script_title=script.title,
+        production_name=production.name,
+        author=script.author,
+        scene_count=scene_count,
+        character_count=character_count,
+        uploader_name=current_user.display_name,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=pdf_filename,
+    )
+
+    return detail
 
 
 # ============================================================
@@ -535,6 +568,20 @@ async def delete_line(
 # ============================================================
 # ヘルパー
 # ============================================================
+
+
+def _try_generate_pdf_from_detail(detail: ScriptDetailResponse) -> tuple[bytes | None, str | None]:
+    """PDF 生成を試み、失敗時や未対応時は (None, None) を返す。"""
+    if generate_script_pdf is None:
+        return None, None
+    try:
+        pdf_bytes = generate_script_pdf(detail, detail.scenes, detail.characters)
+        safe_name = re.sub(r'[\\/:*?"<>|]', "_", detail.title)
+        pdf_filename = f"{safe_name}.pdf"
+        return pdf_bytes, pdf_filename
+    except Exception:
+        logger.warning("PDF generation failed for script %s, sending notification without PDF", detail.id)
+        return None, None
 
 
 def _truncate(value: str | None, max_len: int) -> str | None:
