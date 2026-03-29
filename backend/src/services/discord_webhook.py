@@ -9,6 +9,7 @@ request context (e.g. ``deadline_reminder_loop``) sends immediately.
 """
 
 import asyncio
+import json
 import logging
 from contextvars import ContextVar
 from datetime import UTC, datetime
@@ -19,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # ---- Webhook queue (post-commit dispatch) ----
 
-_pending: ContextVar[list[tuple[str, dict]]] = ContextVar("discord_pending")
+_pending: ContextVar[list[tuple[str, dict, bytes | None, str | None]]] = ContextVar("discord_pending")
 
 # Discord embed limits
 _EMBED_DESC_MAX = 4096
@@ -44,8 +45,11 @@ async def send_queued_webhooks() -> None:
         queue = _pending.get()
     except LookupError:
         return
-    for url, payload in queue:
-        asyncio.create_task(_send_webhook(url, payload))
+    for url, payload, file_bytes, file_name in queue:
+        if file_bytes is not None:
+            asyncio.create_task(_send_webhook_with_file(url, payload, file_bytes, file_name or "file.pdf"))
+        else:
+            asyncio.create_task(_send_webhook(url, payload))
     queue.clear()
 
 
@@ -68,6 +72,7 @@ COLOR_UPDATE = 0x56B4E9  # sky blue
 COLOR_COMPLETED = 0x009E73  # bluish green
 COLOR_COMMENT = 0xCC79A7  # reddish purple
 COLOR_REMINDER = 0xD55E00  # vermillion
+COLOR_SCRIPT = 0xF0E442  # yellow
 
 ISSUE_TYPE_LABELS = {
     "task": "タスク",
@@ -94,7 +99,27 @@ async def _send_webhook(webhook_url: str, payload: dict) -> None:
         logger.exception("Discord webhook error")
 
 
-def _enqueue(webhook_url: str | None, payload: dict) -> None:
+async def _send_webhook_with_file(webhook_url: str, payload: dict, file_bytes: bytes, file_name: str) -> None:
+    """POST payload with a file attachment to Discord webhook URL. Never raises."""
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                webhook_url,
+                data={"payload_json": json.dumps(payload)},
+                files={"file": (file_name, file_bytes, "application/pdf")},
+            )
+            if resp.status_code >= 400:
+                logger.warning("Discord webhook (file) failed: %s %s", resp.status_code, resp.text)
+    except Exception:
+        logger.exception("Discord webhook (file) error")
+
+
+def _enqueue(
+    webhook_url: str | None,
+    payload: dict,
+    file_bytes: bytes | None = None,
+    file_name: str | None = None,
+) -> None:
     """Add a webhook payload to the per-request queue.
 
     If no queue exists (outside a request context, e.g. deadline reminder loop),
@@ -103,9 +128,12 @@ def _enqueue(webhook_url: str | None, payload: dict) -> None:
     if not webhook_url:
         return
     try:
-        _pending.get().append((webhook_url, payload))
+        _pending.get().append((webhook_url, payload, file_bytes, file_name))
     except LookupError:
-        asyncio.create_task(_send_webhook(webhook_url, payload))
+        if file_bytes is not None:
+            asyncio.create_task(_send_webhook_with_file(webhook_url, payload, file_bytes, file_name or "file.pdf"))
+        else:
+            asyncio.create_task(_send_webhook(webhook_url, payload))
 
 
 def notify_issue_created(
@@ -299,3 +327,82 @@ def notify_deadline_reminder(
             ]
         }
         _enqueue(webhook_url, payload)
+
+
+# ---- Script notifications ----
+
+
+def notify_script_uploaded(
+    webhook_url: str | None,
+    *,
+    script_title: str,
+    production_name: str,
+    author: str | None,
+    scene_count: int,
+    character_count: int,
+    uploader_name: str,
+    pdf_bytes: bytes | None = None,
+    pdf_filename: str | None = None,
+) -> None:
+    """Send notification when a script is uploaded."""
+    fields = [
+        {"name": "公演", "value": production_name, "inline": True},
+    ]
+    if author:
+        fields.append({"name": "著者", "value": author, "inline": True})
+    if scene_count:
+        fields.append({"name": "シーン数", "value": str(scene_count), "inline": True})
+    if character_count:
+        fields.append({"name": "登場人物数", "value": str(character_count), "inline": True})
+
+    payload = {
+        "embeds": [
+            {
+                "title": _truncate(f"📄 脚本アップロード: {script_title}", _EMBED_TITLE_MAX),
+                "color": COLOR_SCRIPT,
+                "fields": fields,
+                "footer": {"text": f"アップロード者: {uploader_name}"},
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        ]
+    }
+    _enqueue(webhook_url, payload, pdf_bytes, pdf_filename)
+
+
+def notify_script_updated(
+    webhook_url: str | None,
+    *,
+    script_title: str,
+    revision: int,
+    revision_text: str | None,
+    production_name: str,
+    added_characters: list[str] | None = None,
+    removed_characters: list[str] | None = None,
+    updater_name: str,
+    pdf_bytes: bytes | None = None,
+    pdf_filename: str | None = None,
+) -> None:
+    """Send notification when a script is updated (re-uploaded)."""
+    fields = [
+        {"name": "公演", "value": production_name, "inline": True},
+        {"name": "改訂番号", "value": f"Rev.{revision}", "inline": True},
+    ]
+    if revision_text:
+        fields.append({"name": "改訂メモ", "value": revision_text[:1024], "inline": False})
+    if added_characters:
+        fields.append({"name": "追加キャラクター", "value": "、".join(added_characters)[:1024], "inline": False})
+    if removed_characters:
+        fields.append({"name": "削除キャラクター", "value": "、".join(removed_characters)[:1024], "inline": False})
+
+    payload = {
+        "embeds": [
+            {
+                "title": _truncate(f"📝 脚本更新: {script_title} (Rev.{revision})", _EMBED_TITLE_MAX),
+                "color": COLOR_UPDATE,
+                "fields": fields,
+                "footer": {"text": f"更新者: {updater_name}"},
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        ]
+    }
+    _enqueue(webhook_url, payload, pdf_bytes, pdf_filename)

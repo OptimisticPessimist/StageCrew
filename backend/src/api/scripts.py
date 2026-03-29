@@ -1,12 +1,13 @@
+import logging
 import os
 import re
 import uuid
 from datetime import UTC, datetime
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
 from fastapi.responses import Response
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -35,9 +36,12 @@ from src.schemas.scripts import (
     ScriptListResponse,
     ScriptUpdate,
 )
+from src.services.discord_webhook import notify_script_updated, notify_script_uploaded
 from src.services.file_extractor import decode_text, detect_fountain
 from src.services.fountain_parser import parse_fountain
 from src.services.script_pdf import generate_script_pdf
+
+logger = logging.getLogger(__name__)
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".txt", ".fountain"}
@@ -155,32 +159,12 @@ async def upload_script(
     それ以外のテキストファイルはコンテンツのみ保存し、シーン等は手動登録。
     """
     await _check_org_membership(org_id, current_user.id, db)
-    await _get_production_or_404(production_id, org_id, db)
+    production = await _get_production_or_404(production_id, org_id, db)
 
-    # 拡張子チェック
-    filename = file.filename or ""
-    ext = os.path.splitext(filename)[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"対応していないファイル形式です。対応形式: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
-        )
+    text, filename, is_fountain = await _read_and_validate_upload(file)
 
-    # チャンク読み込みでサイズを検証（全バッファリング前に拒否）
-    chunks: list[bytes] = []
-    total = 0
-    while chunk := await file.read(64 * 1024):
-        total += len(chunk)
-        if total > MAX_UPLOAD_SIZE:
-            raise HTTPException(status_code=400, detail="ファイルサイズが上限（10MB）を超えています")
-        chunks.append(chunk)
-    raw = b"".join(chunks)
-
-    # テキストデコード
-    text = decode_text(raw)
-
-    # Fountain 判定
-    is_fountain = ext == ".fountain" or detect_fountain(text)
+    scene_count = 0
+    character_count = 0
 
     if is_fountain:
         parsed = parse_fountain(text)
@@ -215,47 +199,15 @@ async def upload_script(
             char_name_to_id[fc.name] = char.id
 
         # シーンとセリフを作成
-        for fs in parsed.scenes:
-            scene = Scene(
-                script_id=script.id,
-                act_number=fs.act_number,
-                scene_number=fs.scene_number,
-                heading=_truncate(fs.heading, 256) or fs.heading[:256],
-                description=fs.description,
-                sort_order=fs.sort_order,
-            )
-            db.add(scene)
-            await db.flush()
-
-            for fl in fs.lines:
-                # 未知のキャラクターを自動作成
-                char_id = None
-                if fl.character_name:
-                    if fl.character_name not in char_name_to_id:
-                        new_char = Character(
-                            script_id=script.id,
-                            name=_truncate(fl.character_name, 128) or fl.character_name[:128],
-                            sort_order=len(char_name_to_id),
-                        )
-                        db.add(new_char)
-                        await db.flush()
-                        char_name_to_id[fl.character_name] = new_char.id
-                    char_id = char_name_to_id[fl.character_name]
-
-                line = Line(
-                    scene_id=scene.id,
-                    character_id=char_id,
-                    content=fl.content,
-                    sort_order=fl.sort_order,
-                )
-                db.add(line)
-
-        await db.flush()
+        await _create_scenes_and_lines(script.id, parsed.scenes, char_name_to_id, db)
 
         # 香盤表を自動生成
         from src.services.scene_chart import generate_scene_chart_mappings
 
         await generate_scene_chart_mappings(script.id, db)
+
+        scene_count = len(parsed.scenes)
+        character_count = len(char_name_to_id)
     else:
         # 非 Fountain: テキストのみ保存
         title = _truncate(os.path.splitext(filename)[0], 256) or "無題"
@@ -268,7 +220,154 @@ async def upload_script(
         db.add(script)
         await db.flush()
 
-    return await _load_script_detail(script.id, production_id, org_id, db)
+    # 詳細ロード（scenes, characters を eager load）
+    detail = await _load_script_detail(script.id, production_id, org_id, db)
+
+    # Discord 通知（PDF 添付付き）
+    pdf_bytes, pdf_filename = _try_generate_pdf_from_detail(detail)
+    notify_script_uploaded(
+        production.discord_webhook_url,
+        script_title=script.title,
+        production_name=production.name,
+        author=script.author,
+        scene_count=scene_count,
+        character_count=character_count,
+        uploader_name=current_user.display_name,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=pdf_filename,
+    )
+
+    return detail
+
+
+# ============================================================
+# Re-upload (バージョン更新)
+# ============================================================
+
+
+@router.put("/{script_id}/upload", response_model=ScriptDetailResponse)
+async def reupload_script(
+    org_id: uuid.UUID,
+    production_id: uuid.UUID,
+    script_id: uuid.UUID,
+    file: UploadFile,
+    revision_text: str | None = Form(None),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """既存の脚本を再アップロードしてバージョンを更新する。
+
+    Fountain 形式の場合はシーン・セリフを再構築し、キャラクター名が
+    一致する登場人物のキャスティング情報を保持する。
+    非 Fountain の場合はコンテンツのみ更新する。
+    """
+    await _check_org_membership(org_id, current_user.id, db)
+    production = await _get_production_or_404(production_id, org_id, db)
+    script = await _get_script_or_404(script_id, production_id, org_id, db)
+
+    text, _filename, is_fountain = await _read_and_validate_upload(file)
+
+    added_characters: list[str] = []
+    removed_characters: list[str] = []
+
+    if is_fountain:
+        parsed = parse_fountain(text)
+        meta = parsed.metadata
+
+        # --- 既存キャラクターを名前でマップ ---
+        result = await db.execute(select(Character).where(Character.script_id == script.id))
+        existing_chars: dict[str, Character] = {c.name: c for c in result.scalars().all()}
+
+        # 新しいキャラクター名を収集（パース結果 + セリフ中の未知キャラ）
+        new_char_names: set[str] = {fc.name for fc in parsed.characters}
+        for fs in parsed.scenes:
+            for fl in fs.lines:
+                if fl.character_name:
+                    new_char_names.add(fl.character_name)
+
+        preserved_names = set(existing_chars.keys()) & new_char_names
+        removed_names = set(existing_chars.keys()) - new_char_names
+        added_characters = sorted(new_char_names - set(existing_chars.keys()))
+        removed_characters = sorted(removed_names)
+
+        # --- 全シーンを削除（Line, SceneCharacterMapping もカスケード削除） ---
+        await db.execute(delete(Scene).where(Scene.script_id == script.id))
+        await db.flush()
+
+        # --- 削除対象キャラクターを削除（Casting もカスケード削除） ---
+        for name in removed_names:
+            await db.delete(existing_chars[name])
+        await db.flush()
+
+        # --- 保持キャラクターの description / sort_order を更新 ---
+        parsed_char_map = {fc.name: fc for fc in parsed.characters}
+        char_name_to_id: dict[str, uuid.UUID] = {}
+        for name in preserved_names:
+            char = existing_chars[name]
+            if name in parsed_char_map:
+                fc = parsed_char_map[name]
+                char.description = fc.description
+                char.sort_order = fc.sort_order
+            char_name_to_id[name] = char.id
+
+        # --- 新規キャラクターを作成 ---
+        added_name_set = new_char_names - set(existing_chars.keys())
+        for fc in parsed.characters:
+            if fc.name in added_name_set:
+                char = Character(
+                    script_id=script.id,
+                    name=_truncate(fc.name, 128) or fc.name[:128],
+                    description=fc.description,
+                    sort_order=fc.sort_order,
+                )
+                db.add(char)
+                await db.flush()
+                char_name_to_id[fc.name] = char.id
+
+        # --- シーンとセリフを再構築（未知キャラも自動作成） ---
+        await _create_scenes_and_lines(script.id, parsed.scenes, char_name_to_id, db)
+
+        # --- 香盤表を再生成 ---
+        from src.services.scene_chart import generate_scene_chart_mappings
+
+        await generate_scene_chart_mappings(script.id, db)
+
+        # --- メタデータを更新 ---
+        script.content = text
+        script.title = _truncate(meta.title, 256) or script.title
+        script.author = _truncate(meta.author, 256) or script.author
+        script.draft_date = _parse_draft_date(meta.draft_date) or script.draft_date
+        script.copyright = _truncate(meta.copyright, 512) or script.copyright
+        script.contact = _truncate(meta.contact, 512) or script.contact
+        script.notes = meta.notes or script.notes
+        script.synopsis = meta.synopsis or script.synopsis
+    else:
+        # 非 Fountain: コンテンツのみ更新
+        script.content = text
+
+    script.revision = (script.revision or 0) + 1
+    script.revision_text = revision_text
+    await db.flush()
+
+    # 詳細ロード
+    detail = await _load_script_detail(script.id, production_id, org_id, db)
+
+    # Discord 通知（PDF 添付付き）
+    pdf_bytes, pdf_filename = _try_generate_pdf_from_detail(detail)
+    notify_script_updated(
+        production.discord_webhook_url,
+        script_title=script.title,
+        revision=script.revision,
+        revision_text=revision_text,
+        production_name=production.name,
+        added_characters=added_characters or None,
+        removed_characters=removed_characters or None,
+        updater_name=current_user.display_name,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=pdf_filename,
+    )
+
+    return detail
 
 
 # ============================================================
@@ -595,6 +694,18 @@ async def download_script_pdf(
 # ============================================================
 
 
+def _try_generate_pdf_from_detail(detail: ScriptDetailResponse) -> tuple[bytes | None, str | None]:
+    """PDF 生成を試み、失敗時は (None, None) を返す。"""
+    try:
+        pdf_bytes = generate_script_pdf(detail, detail.scenes, detail.characters)
+        safe_name = re.sub(r'[\\/:*?"<>|]', "_", detail.title)
+        pdf_filename = f"{safe_name}.pdf"
+        return pdf_bytes, pdf_filename
+    except Exception:
+        logger.warning("PDF generation failed for script %s, sending notification without PDF", detail.id)
+        return None, None
+
+
 def _truncate(value: str | None, max_len: int) -> str | None:
     """文字列を DB カラムの最大長に切り詰める。"""
     if value is None:
@@ -734,3 +845,84 @@ async def _load_script_detail(
     script.characters.sort(key=lambda c: (c.sort_order, c.name))
 
     return ScriptDetailResponse.model_validate(script)
+
+
+# ============================================================
+# 内部ヘルパー: ファイル読み込み / Fountain データ構築
+# ============================================================
+
+
+async def _read_and_validate_upload(file: UploadFile) -> tuple[str, str, bool]:
+    """アップロードファイルを読み込み、デコードし、Fountain 判定する。
+
+    戻り値: (text, filename, is_fountain)
+    """
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"対応していないファイル形式です。対応形式: {', '.join(sorted(ALLOWED_EXTENSIONS))}",
+        )
+
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(64 * 1024):
+        total += len(chunk)
+        if total > MAX_UPLOAD_SIZE:
+            raise HTTPException(status_code=400, detail="ファイルサイズが上限（10MB）を超えています")
+        chunks.append(chunk)
+    raw = b"".join(chunks)
+
+    text = decode_text(raw)
+    is_fountain = ext == ".fountain" or detect_fountain(text)
+    return text, filename, is_fountain
+
+
+async def _create_scenes_and_lines(
+    script_id: uuid.UUID,
+    parsed_scenes: list,
+    char_name_to_id: dict[str, uuid.UUID],
+    db: AsyncSession,
+) -> dict[str, uuid.UUID]:
+    """パース済みシーン・セリフを DB に作成する。
+
+    未知のキャラクターが出現した場合は自動作成する。
+    戻り値は更新後の char_name_to_id マップ。
+    """
+    for fs in parsed_scenes:
+        scene = Scene(
+            script_id=script_id,
+            act_number=fs.act_number,
+            scene_number=fs.scene_number,
+            heading=_truncate(fs.heading, 256) or fs.heading[:256],
+            description=fs.description,
+            sort_order=fs.sort_order,
+        )
+        db.add(scene)
+        await db.flush()
+
+        for fl in fs.lines:
+            char_id = None
+            if fl.character_name:
+                if fl.character_name not in char_name_to_id:
+                    new_char = Character(
+                        script_id=script_id,
+                        name=_truncate(fl.character_name, 128) or fl.character_name[:128],
+                        sort_order=len(char_name_to_id),
+                    )
+                    db.add(new_char)
+                    await db.flush()
+                    char_name_to_id[fl.character_name] = new_char.id
+                char_id = char_name_to_id[fl.character_name]
+
+            line = Line(
+                scene_id=scene.id,
+                character_id=char_id,
+                content=fl.content,
+                sort_order=fl.sort_order,
+            )
+            db.add(line)
+
+    await db.flush()
+    return char_name_to_id
