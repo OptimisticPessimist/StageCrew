@@ -306,9 +306,7 @@ async def test_reupload_rebuilds_scenes(client: AsyncClient, production):
     assert any("カフェ" in h for h in headings)
 
 
-async def test_reupload_regenerates_scene_chart(
-    client: AsyncClient, production, db_session: AsyncSession
-):
+async def test_reupload_regenerates_scene_chart(client: AsyncClient, production, db_session: AsyncSession):
     """再アップロードで香盤表マッピングが再生成される。"""
     prod, _ = production
 
