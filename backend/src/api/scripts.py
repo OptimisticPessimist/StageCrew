@@ -36,17 +36,12 @@ from src.schemas.scripts import (
     ScriptListResponse,
     ScriptUpdate,
 )
-from src.services.discord_webhook import notify_script_uploaded
+from src.services.discord_webhook import notify_script_updated, notify_script_uploaded
 from src.services.file_extractor import decode_text, detect_fountain
 from src.services.fountain_parser import parse_fountain
 from src.services.script_pdf import generate_script_pdf
 
 logger = logging.getLogger(__name__)
-
-try:
-    from src.services.script_pdf import generate_script_pdf
-except ImportError:
-    generate_script_pdf = None  # type: ignore[assignment,misc]
 
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".txt", ".fountain"}
@@ -267,9 +262,13 @@ async def reupload_script(
     非 Fountain の場合はコンテンツのみ更新する。
     """
     await _check_org_membership(org_id, current_user.id, db)
+    production = await _get_production_or_404(production_id, org_id, db)
     script = await _get_script_or_404(script_id, production_id, org_id, db)
 
     text, _filename, is_fountain = await _read_and_validate_upload(file)
+
+    added_characters: list[str] = []
+    removed_characters: list[str] = []
 
     if is_fountain:
         parsed = parse_fountain(text)
@@ -288,6 +287,8 @@ async def reupload_script(
 
         preserved_names = set(existing_chars.keys()) & new_char_names
         removed_names = set(existing_chars.keys()) - new_char_names
+        added_characters = sorted(new_char_names - set(existing_chars.keys()))
+        removed_characters = sorted(removed_names)
 
         # --- 全シーンを削除（Line, SceneCharacterMapping もカスケード削除） ---
         await db.execute(delete(Scene).where(Scene.script_id == script.id))
@@ -310,9 +311,9 @@ async def reupload_script(
             char_name_to_id[name] = char.id
 
         # --- 新規キャラクターを作成 ---
-        added_names = new_char_names - set(existing_chars.keys())
+        added_name_set = new_char_names - set(existing_chars.keys())
         for fc in parsed.characters:
-            if fc.name in added_names:
+            if fc.name in added_name_set:
                 char = Character(
                     script_id=script.id,
                     name=_truncate(fc.name, 128) or fc.name[:128],
@@ -348,7 +349,25 @@ async def reupload_script(
     script.revision_text = revision_text
     await db.flush()
 
-    return await _load_script_detail(script.id, production_id, org_id, db)
+    # 詳細ロード
+    detail = await _load_script_detail(script.id, production_id, org_id, db)
+
+    # Discord 通知（PDF 添付付き）
+    pdf_bytes, pdf_filename = _try_generate_pdf_from_detail(detail)
+    notify_script_updated(
+        production.discord_webhook_url,
+        script_title=script.title,
+        revision=script.revision,
+        revision_text=revision_text,
+        production_name=production.name,
+        added_characters=added_characters or None,
+        removed_characters=removed_characters or None,
+        updater_name=current_user.display_name,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=pdf_filename,
+    )
+
+    return detail
 
 
 # ============================================================
@@ -676,9 +695,7 @@ async def download_script_pdf(
 
 
 def _try_generate_pdf_from_detail(detail: ScriptDetailResponse) -> tuple[bytes | None, str | None]:
-    """PDF 生成を試み、失敗時や未対応時は (None, None) を返す。"""
-    if generate_script_pdf is None:
-        return None, None
+    """PDF 生成を試み、失敗時は (None, None) を返す。"""
     try:
         pdf_bytes = generate_script_pdf(detail, detail.scenes, detail.characters)
         safe_name = re.sub(r'[\\/:*?"<>|]', "_", detail.title)
