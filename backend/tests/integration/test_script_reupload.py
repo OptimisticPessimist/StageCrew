@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Casting, Character, Scene, SceneCharacterMapping
+from src.db.models import Casting, Scene, SceneCharacterMapping
 
 
 def _fountain_v1() -> bytes:
