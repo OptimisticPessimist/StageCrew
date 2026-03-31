@@ -1,18 +1,6 @@
-const BASE = "/api";
+import { supabase } from "@/lib/supabase";
 
-const TOKEN_KEY = "stagecrew_token";
-
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function removeToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-}
+const BASE = import.meta.env.VITE_API_URL || "/api";
 
 class ApiError extends Error {
   constructor(
@@ -25,19 +13,21 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options?.headers as Record<string, string>),
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (session?.access_token) {
+    headers["Authorization"] = `Bearer ${session.access_token}`;
   }
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
 
   if (res.status === 401) {
-    removeToken();
+    await supabase.auth.signOut();
     window.location.href = "/login";
     throw new ApiError(401, "認証が必要です");
   }

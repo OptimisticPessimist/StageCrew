@@ -1,4 +1,5 @@
 import asyncio
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -10,7 +11,9 @@ from src.db import models  # noqa: F401 - ensure models are imported for autogen
 from src.db.base import Base
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# マイグレーション用に直接接続 (port 5432) を使う場合は MIGRATION_DATABASE_URL を設定
+migration_url = os.environ.get("MIGRATION_DATABASE_URL", settings.database_url)
+config.set_main_option("sqlalchemy.url", migration_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -41,15 +41,9 @@ class Settings(BaseSettings):
         query = urlencode({k: vs[0] for k, vs in new_qs.items()}) if new_qs else ""
         return urlunsplit((scheme, parts.netloc, parts.path, query, parts.fragment))
 
-    # Auth - Discord OAuth
-    discord_client_id: str = ""
-    discord_client_secret: str = ""
-    discord_redirect_uri: str = "http://localhost:8000/api/auth/discord/callback"
-
-    # JWT
-    jwt_secret_key: str = "change-me-in-production"
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 60 * 24  # 24 hours
+    # Supabase Auth
+    supabase_url: str = ""
+    supabase_publishable_key: str = ""  # sb_publishable_... (フロントエンドでも使用)
 
     # Frontend
     frontend_url: str = "http://localhost:5173"

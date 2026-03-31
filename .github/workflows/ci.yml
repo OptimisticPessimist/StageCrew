@@ -58,9 +58,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+asyncpg://stagecrew:stagecrew@localhost:5432/stagecrew_test
-      JWT_SECRET_KEY: test-secret-key-for-ci-only
-      DISCORD_CLIENT_ID: test-client-id
-      DISCORD_CLIENT_SECRET: test-client-secret
+      SUPABASE_URL: https://fake.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_fake-key
 
     steps:
       - uses: actions/checkout@v4

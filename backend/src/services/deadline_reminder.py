@@ -140,7 +140,11 @@ async def _check_and_notify(db: AsyncSession, now: datetime) -> None:
 
 
 async def deadline_reminder_loop() -> None:
-    """Run the deadline check once daily at the configured UTC hour."""
+    """Run the deadline check once daily at the configured UTC hour.
+
+    注意: 本番環境では Supabase pg_cron + pg_net で実行されるため、
+    この関数はローカル開発・テスト用途でのみ使用される。
+    """
     logger.info(
         "Deadline reminder started (check hour: %02d:00 UTC, days: %s)",
         settings.deadline_reminder_hour_utc,
