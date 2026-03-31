@@ -303,6 +303,180 @@ export interface DashboardResponse {
   deadline_warnings: DeadlineWarnings;
 }
 
+// ---- Script ----
+export interface ScriptListItem {
+  id: string;
+  title: string;
+  author: string | null;
+  revision: number;
+  synopsis: string | null;
+  is_public: boolean;
+  uploaded_by: string;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScriptUploader {
+  id: string;
+  display_name: string;
+}
+
+export interface CharacterCasting {
+  id: string;
+  production_membership_id: string;
+  display_name: string | null;
+  memo: string | null;
+  sort_order: number;
+}
+
+export interface ScriptCharacter {
+  id: string;
+  script_id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+  castings: CharacterCasting[];
+}
+
+export interface ScriptLine {
+  id: string;
+  scene_id: string;
+  character_id: string | null;
+  content: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ScriptScene {
+  id: string;
+  script_id: string;
+  act_number: number;
+  scene_number: number;
+  heading: string;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+  lines: ScriptLine[];
+}
+
+export interface ScriptDetail extends ScriptListItem {
+  content: string | null;
+  draft_date: string | null;
+  revision_text: string | null;
+  copyright: string | null;
+  contact: string | null;
+  notes: string | null;
+  pdf_orientation: string;
+  pdf_writing_direction: string;
+  public_terms: string | null;
+  public_contact: string | null;
+  uploader: ScriptUploader;
+  scenes: ScriptScene[];
+  characters: ScriptCharacter[];
+}
+
+export interface ScriptCreate {
+  title: string;
+  content?: string | null;
+  author?: string | null;
+  draft_date?: string | null;
+  revision?: number;
+  revision_text?: string | null;
+  copyright?: string | null;
+  contact?: string | null;
+  notes?: string | null;
+  synopsis?: string | null;
+  pdf_orientation?: "landscape" | "portrait";
+  pdf_writing_direction?: "vertical" | "horizontal";
+  is_public?: boolean;
+  public_terms?: string | null;
+  public_contact?: string | null;
+}
+
+export interface ScriptUpdate {
+  title?: string;
+  author?: string | null;
+  revision?: number;
+  revision_text?: string | null;
+  synopsis?: string | null;
+  pdf_orientation?: "landscape" | "portrait";
+  pdf_writing_direction?: "vertical" | "horizontal";
+  is_public?: boolean;
+}
+
+// ---- Casting ----
+export interface CastingCharacter {
+  id: string;
+  name: string;
+}
+
+export interface CastingMemberUser {
+  id: string;
+  display_name: string;
+}
+
+export interface CastingMember {
+  id: string;
+  user: CastingMemberUser;
+}
+
+export interface Casting {
+  id: string;
+  character_id: string;
+  production_membership_id: string;
+  display_name: string | null;
+  memo: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  character: CastingCharacter;
+  production_membership: CastingMember;
+}
+
+export interface CastingCreate {
+  character_id: string;
+  production_membership_id: string;
+  display_name?: string | null;
+  memo?: string | null;
+  sort_order?: number;
+}
+
+export interface CastingUpdate {
+  display_name?: string | null;
+  memo?: string | null;
+  sort_order?: number;
+}
+
+// ---- Scene Chart ----
+export interface SceneChartCharacter {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface SceneChartScene {
+  id: string;
+  act_number: number;
+  scene_number: number;
+  heading: string;
+  sort_order: number;
+}
+
+export interface SceneChartCell {
+  mapping_id: string;
+  appearance_type: "dialogue" | "silent" | "off_stage";
+  is_auto_generated: boolean;
+  note: string | null;
+}
+
+export interface SceneChart {
+  characters: SceneChartCharacter[];
+  scenes: SceneChartScene[];
+  matrix: Record<string, Record<string, SceneChartCell | null>>;
+}
+
 // ---- Home ----
 export interface HomeIssue extends DashboardIssue {
   production_id: string;

@@ -136,6 +136,12 @@ export default function KanbanPage() {
           >
             ガントチャート
           </Link>
+          <Link
+            to={`/organizations/${orgId}/productions/${productionId}/scripts`}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            脚本
+          </Link>
           <CountdownBadge orgId={orgId!} productionId={productionId!} />
         </div>
         <div className="flex items-center gap-2">
