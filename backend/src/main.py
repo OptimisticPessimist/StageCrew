@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -27,21 +26,13 @@ from src.api import (
     statuses,
 )
 from src.core.config import settings
-from src.services.deadline_reminder import deadline_reminder_loop
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(deadline_reminder_loop())
-    logger.info("Deadline reminder background task started")
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
 
 
 app = FastAPI(
@@ -60,7 +51,7 @@ app.add_middleware(
 )
 
 app.include_router(home.router, prefix="/api/home", tags=["home"])
-app.include_router(auth.router, prefix="/api/auth/discord", tags=["auth"])
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(organizations.router, prefix="/api/organizations", tags=["organizations"])
 app.include_router(productions.router, prefix="/api/organizations/{org_id}/productions", tags=["productions"])

@@ -6,7 +6,8 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { api, getToken, removeToken } from "@/api/client";
+import { supabase } from "@/lib/supabase";
+import { api } from "@/api/client";
 
 interface AuthUser {
   id: string;
@@ -31,32 +32,52 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
+async function fetchAppUser(): Promise<AuthUser | null> {
+  try {
+    return await api.get<AuthUser>("/auth/me");
+  } catch {
+    return null;
+  }
+}
+
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
+    // 初期セッション取得
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const appUser = await fetchAppUser();
+        setUser(appUser);
+      }
       setIsLoading(false);
-      return;
-    }
+    });
 
-    api
-      .get<AuthUser>("/auth/discord/me")
-      .then(setUser)
-      .catch(() => {
-        removeToken();
-      })
-      .finally(() => setIsLoading(false));
+    // セッション変更を監視
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        const appUser = await fetchAppUser();
+        setUser(appUser);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = useCallback(() => {
-    window.location.href = "/api/auth/discord/login";
+    supabase.auth.signInWithOAuth({
+      provider: "discord",
+      options: { redirectTo: window.location.origin + "/auth/callback" },
+    });
   }, []);
 
-  const logout = useCallback(() => {
-    removeToken();
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
     window.location.href = "/login";
   }, []);
