@@ -51,29 +51,6 @@ Cloudflare Pages + Supabase + Render 構成のセットアップ手順。
 接続文字列の形式:
 ```
 postgresql+asyncpg://postgres.[project-ref]:[password]@aws-1-ap-northeast-1.pooler.supabase.com:[port]/postgres?ssl=require
-```
-
-### 1.3 Discord 認証プロバイダーの有効化
-
-1. **Authentication > Providers** に移動
-2. **Discord** を有効化
-3. [Discord Developer Portal](https://discord.com/developers/applications) で:
-   - アプリケーションを作成（または既存のものを使用）
-   - **OAuth2 > Redirects** に以下を追加:
-     ```
-     https://<project-ref>.supabase.co/auth/v1/callback
-     ```
-   - `Client ID` と `Client Secret` を控える
-4. Supabase に戻り、Discord の `Client ID` と `Client Secret` を入力して保存
-
-### 1.4 データベースマイグレーション
-
-ローカルから Alembic マイグレーションを実行:
-
-```bash
-cd backend
-
-# 直接接続 (port 5432) を使用
 export MIGRATION_DATABASE_URL="postgresql+asyncpg://postgres.[project-ref]:[password]@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?ssl=require"
 export DATABASE_URL="$MIGRATION_DATABASE_URL"
 
