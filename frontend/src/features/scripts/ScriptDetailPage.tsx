@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { api } from "@/api/client";
 import { useScript, useReuploadScript } from "./hooks/useScripts";
 import ScriptUploadModal from "./ScriptUploadModal";
 import CharacterCastingEditor from "./CharacterCastingEditor";
@@ -24,6 +25,27 @@ export default function ScriptDetailPage() {
 
   const [tab, setTab] = useState<TabKey>("overview");
   const [reuploadOpen, setReuploadOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  const handleDownloadPdf = async () => {
+    if (!script) return;
+    setDownloadError(null);
+    setDownloading(true);
+    try {
+      const safeName = script.title.replace(/[\\/:*?"<>|]/g, "_");
+      await api.download(
+        `/organizations/${orgId}/productions/${productionId}/scripts/${scriptId}/pdf`,
+        `${safeName}.pdf`,
+      );
+    } catch (err) {
+      setDownloadError(
+        err instanceof Error ? err.message : "PDFのダウンロードに失敗しました",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const listPath = `/organizations/${orgId}/productions/${productionId}/scripts`;
 
@@ -67,12 +89,25 @@ export default function ScriptDetailPage() {
           Rev {script.revision}
         </span>
         <button
+          onClick={handleDownloadPdf}
+          disabled={downloading}
+          className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+          title="脚本をPDFとしてダウンロード"
+        >
+          {downloading ? "生成中..." : "PDF"}
+        </button>
+        <button
           onClick={() => setReuploadOpen(true)}
           className="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100"
         >
           再アップロード
         </button>
       </header>
+      {downloadError && (
+        <div className="bg-red-50 border-b border-red-200 text-red-700 text-xs px-6 py-2">
+          {downloadError}
+        </div>
+      )}
 
       <main className="max-w-4xl mx-auto p-6 space-y-5">
         <nav className="flex items-center gap-1 border-b">
