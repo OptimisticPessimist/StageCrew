@@ -5,7 +5,6 @@ services:
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     plan: free
-    preDeployCommand: alembic upgrade head
     envVars:
       - key: DATABASE_URL
         sync: false

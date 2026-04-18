@@ -22,14 +22,17 @@ COPY --from=builder /app/.venv /app/.venv
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY src/ ./src/
+COPY start.sh ./start.sh
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+RUN chmod +x ./start.sh
+
 USER app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./start.sh"]
