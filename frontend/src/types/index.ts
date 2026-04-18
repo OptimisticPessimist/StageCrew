@@ -403,6 +403,59 @@ export interface CastingUpdate {
   sort_order?: number;
 }
 
+// ---- Scene Chart ----
+export type AppearanceType = "dialogue" | "silent" | "off_stage";
+
+export interface SceneChartCharacter {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+export interface SceneChartScene {
+  id: string;
+  act_number: number;
+  scene_number: number;
+  heading: string;
+  sort_order: number;
+}
+
+export interface SceneChartCell {
+  mapping_id: string;
+  appearance_type: AppearanceType | string;
+  is_auto_generated: boolean;
+  note: string | null;
+}
+
+export interface SceneChartResponse {
+  characters: SceneChartCharacter[];
+  scenes: SceneChartScene[];
+  matrix: Record<string, Record<string, SceneChartCell | null>>;
+}
+
+export interface SceneCharacterMappingCreate {
+  scene_id: string;
+  character_id: string;
+  appearance_type?: AppearanceType;
+  note?: string | null;
+}
+
+export interface SceneCharacterMappingUpdate {
+  appearance_type?: AppearanceType;
+  note?: string | null;
+}
+
+export interface SceneCharacterMapping {
+  id: string;
+  scene_id: string;
+  character_id: string;
+  appearance_type: string;
+  is_auto_generated: boolean;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ScriptDetail extends ScriptListItem {
   content: string | null;
   draft_date: string | null;

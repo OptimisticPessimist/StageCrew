@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { useScript, useReuploadScript } from "./hooks/useScripts";
 import ScriptUploadModal from "./ScriptUploadModal";
 import CharacterCastingEditor from "./CharacterCastingEditor";
+import SceneChartView from "./SceneChartView";
 import type { ScriptCharacter, ScriptScene } from "@/types";
 
-type TabKey = "overview" | "characters" | "scenes";
+type TabKey = "overview" | "characters" | "scenes" | "chart";
 
 export default function ScriptDetailPage() {
   const { orgId, productionId, scriptId } = useParams<{
@@ -93,6 +94,12 @@ export default function ScriptDetailPage() {
           >
             シーン ({script.scenes.length})
           </TabButton>
+          <TabButton
+            active={tab === "chart"}
+            onClick={() => setTab("chart")}
+          >
+            香盤表
+          </TabButton>
         </nav>
 
         {tab === "overview" && <OverviewTab script={script} />}
@@ -108,6 +115,13 @@ export default function ScriptDetailPage() {
           <ScenesTab
             scenes={script.scenes}
             characterNameMap={characterNameMap}
+          />
+        )}
+        {tab === "chart" && (
+          <SceneChartView
+            orgId={orgId!}
+            productionId={productionId!}
+            scriptId={scriptId!}
           />
         )}
       </main>
