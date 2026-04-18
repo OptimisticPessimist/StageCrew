@@ -13,7 +13,8 @@ from src.db.base import Base
 config = context.config
 # マイグレーション用に直接接続 (port 5432) を使う場合は MIGRATION_DATABASE_URL を設定
 migration_url = os.environ.get("MIGRATION_DATABASE_URL", settings.database_url)
-config.set_main_option("sqlalchemy.url", migration_url)
+# configparser の interpolation 対策: URL 内の `%` をエスケープ（パスワードに `%` が含まれるケース）
+config.set_main_option("sqlalchemy.url", migration_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

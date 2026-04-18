@@ -50,7 +50,7 @@ Cloudflare Pages + Supabase + Render 構成のセットアップ手順。
 
 接続文字列の形式:
 ```
-postgresql+asyncpg://postgres.[project-ref]:[password]@aws-0-ap-northeast-1.pooler.supabase.com:[port]/postgres?sslmode=require
+postgresql+asyncpg://postgres.[project-ref]:[password]@aws-1-ap-northeast-1.pooler.supabase.com:[port]/postgres?ssl=require
 ```
 
 ### 1.3 Discord 認証プロバイダーの有効化
@@ -74,7 +74,7 @@ postgresql+asyncpg://postgres.[project-ref]:[password]@aws-0-ap-northeast-1.pool
 cd backend
 
 # 直接接続 (port 5432) を使用
-export MIGRATION_DATABASE_URL="postgresql+asyncpg://postgres.[project-ref]:[password]@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require"
+export MIGRATION_DATABASE_URL="postgresql+asyncpg://postgres.[project-ref]:[password]@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres?ssl=require"
 export DATABASE_URL="$MIGRATION_DATABASE_URL"
 
 uv run alembic upgrade head
@@ -120,8 +120,8 @@ Render ダッシュボードの **Environment** タブで以下を設定:
 
 | 変数名 | 値 | 説明 |
 |--------|-----|------|
-| `DATABASE_URL` | `postgresql+asyncpg://postgres.[ref]:[pass]@...pooler.supabase.com:6543/postgres?sslmode=require` | Supabase pooled connection (port **6543**) |
-| `MIGRATION_DATABASE_URL` | `postgresql+asyncpg://postgres.[ref]:[pass]@...pooler.supabase.com:5432/postgres?sslmode=require` | Supabase direct connection (port **5432**) |
+| `DATABASE_URL` | `postgresql+asyncpg://postgres.[ref]:[pass]@...pooler.supabase.com:6543/postgres?ssl=require` | Supabase pooled connection (port **6543**) |
+| `MIGRATION_DATABASE_URL` | `postgresql+asyncpg://postgres.[ref]:[pass]@...pooler.supabase.com:5432/postgres?ssl=require` | Supabase direct connection (port **5432**) |
 | `SUPABASE_URL` | `https://[ref].supabase.co` | Supabase プロジェクト URL |
 | `SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | Publishable Key |
 | `FRONTEND_URL` | `https://stagecrew.pages.dev` | Cloudflare Pages の URL |
