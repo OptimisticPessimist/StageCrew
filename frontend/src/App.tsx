@@ -11,6 +11,7 @@ import LoginPage from "@/features/auth/LoginPage";
 import AuthCallbackPage from "@/features/auth/AuthCallbackPage";
 import ProtectedRoute from "@/features/auth/ProtectedRoute";
 import HomePage from "@/features/home/HomePage";
+import ScriptListPage from "@/features/scripts/ScriptListPage";
 
 export default function App() {
   return (
@@ -56,6 +57,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/scripts"
+          element={
+            <ProtectedRoute>
+              <ScriptListPage />
             </ProtectedRoute>
           }
         />

@@ -303,6 +303,20 @@ export interface DashboardResponse {
   deadline_warnings: DeadlineWarnings;
 }
 
+// ---- Script ----
+export interface ScriptListItem {
+  id: string;
+  title: string;
+  author: string | null;
+  revision: number;
+  synopsis: string | null;
+  is_public: boolean;
+  uploaded_by: string;
+  uploaded_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- Home ----
 export interface HomeIssue extends DashboardIssue {
   production_id: string;
