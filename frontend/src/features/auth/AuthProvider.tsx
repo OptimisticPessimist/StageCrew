@@ -33,11 +33,16 @@ export function useAuth(): AuthContextValue {
 }
 
 async function fetchAppUser(): Promise<AuthUser | null> {
-  try {
-    return await api.get<AuthUser>("/auth/me");
-  } catch {
-    return null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await api.get<AuthUser>("/auth/me");
+    } catch (e: unknown) {
+      // 401 はリトライしない（トークン不正）
+      if (e instanceof Error && e.message === "認証が必要です") return null;
+      if (i < 2) await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
+    }
   }
+  return null;
 }
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
