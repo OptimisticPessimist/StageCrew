@@ -361,6 +361,48 @@ export interface ScriptUploader {
   display_name: string;
 }
 
+export interface CastingCharacterRef {
+  id: string;
+  name: string;
+}
+
+export interface CastingMemberUser {
+  id: string;
+  display_name: string;
+}
+
+export interface CastingMemberRef {
+  id: string;
+  user: CastingMemberUser;
+}
+
+export interface Casting {
+  id: string;
+  character_id: string;
+  production_membership_id: string;
+  display_name: string | null;
+  memo: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  character: CastingCharacterRef;
+  production_membership: CastingMemberRef;
+}
+
+export interface CastingCreate {
+  character_id: string;
+  production_membership_id: string;
+  display_name?: string | null;
+  memo?: string | null;
+  sort_order?: number;
+}
+
+export interface CastingUpdate {
+  display_name?: string | null;
+  memo?: string | null;
+  sort_order?: number;
+}
+
 export interface ScriptDetail extends ScriptListItem {
   content: string | null;
   draft_date: string | null;

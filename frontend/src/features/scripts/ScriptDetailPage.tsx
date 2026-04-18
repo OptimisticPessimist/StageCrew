@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useScript, useReuploadScript } from "./hooks/useScripts";
 import ScriptUploadModal from "./ScriptUploadModal";
+import CharacterCastingEditor from "./CharacterCastingEditor";
 import type { ScriptCharacter, ScriptScene } from "@/types";
 
 type TabKey = "overview" | "characters" | "scenes";
@@ -96,7 +97,12 @@ export default function ScriptDetailPage() {
 
         {tab === "overview" && <OverviewTab script={script} />}
         {tab === "characters" && (
-          <CharactersTab characters={script.characters} />
+          <CharactersTab
+            characters={script.characters}
+            orgId={orgId!}
+            productionId={productionId!}
+            scriptId={scriptId!}
+          />
         )}
         {tab === "scenes" && (
           <ScenesTab
@@ -206,47 +212,94 @@ function OverviewTab({
   );
 }
 
-function CharactersTab({ characters }: { characters: ScriptCharacter[] }) {
+function CharactersTab({
+  characters,
+  orgId,
+  productionId,
+  scriptId,
+}: {
+  characters: ScriptCharacter[];
+  orgId: string;
+  productionId: string;
+  scriptId: string;
+}) {
   if (characters.length === 0) {
-    return (
-      <EmptyState message="登場人物が登録されていません" />
-    );
+    return <EmptyState message="登場人物が登録されていません" />;
   }
   return (
     <div className="bg-white rounded-lg border divide-y">
       {characters.map((char) => (
-        <div key={char.id} className="p-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-gray-900">{char.name}</span>
-            {char.castings.length > 0 && (
-              <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                {char.castings.length}名配役済
-              </span>
-            )}
-          </div>
-          {char.description && (
-            <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">
-              {char.description}
-            </p>
-          )}
-          {char.castings.length > 0 && (
-            <ul className="mt-2 space-y-0.5">
-              {char.castings.map((cast) => (
-                <li
-                  key={cast.id}
-                  className="text-xs text-gray-500 flex items-center gap-2"
-                >
-                  <span>&bull;</span>
-                  <span>{cast.display_name || "（表示名未設定）"}</span>
-                  {cast.memo && (
-                    <span className="text-gray-400">— {cast.memo}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <CharacterRow
+          key={char.id}
+          char={char}
+          orgId={orgId}
+          productionId={productionId}
+          scriptId={scriptId}
+        />
       ))}
+    </div>
+  );
+}
+
+function CharacterRow({
+  char,
+  orgId,
+  productionId,
+  scriptId,
+}: {
+  char: ScriptCharacter;
+  orgId: string;
+  productionId: string;
+  scriptId: string;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-medium text-gray-900">{char.name}</span>
+        {char.castings.length > 0 && (
+          <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+            {char.castings.length}名配役済
+          </span>
+        )}
+        <div className="flex-1" />
+        <button
+          onClick={() => setEditing(!editing)}
+          className="text-sm text-gray-400 hover:text-gray-600"
+        >
+          {editing ? "閉じる" : "配役を編集"}
+        </button>
+      </div>
+      {char.description && (
+        <p className="mt-1 text-sm text-gray-600 whitespace-pre-wrap">
+          {char.description}
+        </p>
+      )}
+      {!editing && char.castings.length > 0 && (
+        <ul className="mt-2 space-y-0.5">
+          {char.castings.map((cast) => (
+            <li
+              key={cast.id}
+              className="text-xs text-gray-500 flex items-center gap-2"
+            >
+              <span>&bull;</span>
+              <span>{cast.display_name || "（表示名未設定）"}</span>
+              {cast.memo && (
+                <span className="text-gray-400">— {cast.memo}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {editing && (
+        <CharacterCastingEditor
+          character={char}
+          orgId={orgId}
+          productionId={productionId}
+          scriptId={scriptId}
+        />
+      )}
     </div>
   );
 }
