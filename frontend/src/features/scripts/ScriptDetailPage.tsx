@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useScript } from "./hooks/useScripts";
+import { useScript, useReuploadScript } from "./hooks/useScripts";
+import ScriptUploadModal from "./ScriptUploadModal";
 import type { ScriptCharacter, ScriptScene } from "@/types";
 
 type TabKey = "overview" | "characters" | "scenes";
@@ -17,8 +18,10 @@ export default function ScriptDetailPage() {
     productionId!,
     scriptId!,
   );
+  const reupload = useReuploadScript(orgId!, productionId!, scriptId!);
 
   const [tab, setTab] = useState<TabKey>("overview");
+  const [reuploadOpen, setReuploadOpen] = useState(false);
 
   const listPath = `/organizations/${orgId}/productions/${productionId}/scripts`;
 
@@ -61,6 +64,12 @@ export default function ScriptDetailPage() {
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
           Rev {script.revision}
         </span>
+        <button
+          onClick={() => setReuploadOpen(true)}
+          className="px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 rounded hover:bg-indigo-100"
+        >
+          再アップロード
+        </button>
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-5">
@@ -96,6 +105,18 @@ export default function ScriptDetailPage() {
           />
         )}
       </main>
+
+      {reuploadOpen && (
+        <ScriptUploadModal
+          title="脚本を再アップロード（リビジョン更新）"
+          submitLabel="再アップロード"
+          showRevisionText
+          onClose={() => setReuploadOpen(false)}
+          onSubmit={({ file, revisionText }) =>
+            reupload.mutateAsync({ file, revisionText })
+          }
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,11 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useScripts, useDeleteScript } from "./hooks/useScripts";
+import {
+  useScripts,
+  useDeleteScript,
+  useUploadScript,
+} from "./hooks/useScripts";
+import ScriptUploadModal from "./ScriptUploadModal";
 import type { ScriptListItem } from "@/types";
 
 export default function ScriptListPage() {
@@ -10,6 +16,8 @@ export default function ScriptListPage() {
 
   const { data: scripts = [], isLoading } = useScripts(orgId!, productionId!);
   const deleteScript = useDeleteScript(orgId!, productionId!);
+  const uploadScript = useUploadScript(orgId!, productionId!);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const dashboardPath = `/organizations/${orgId}/productions/${productionId}/dashboard`;
 
@@ -38,15 +46,24 @@ export default function ScriptListPage() {
           </Link>
           <h1 className="text-lg font-bold text-gray-900">脚本</h1>
         </div>
+        <button
+          onClick={() => setUploadOpen(true)}
+          className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700"
+        >
+          + アップロード
+        </button>
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-3">
         {scripts.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <p className="mb-2">まだ脚本がありません</p>
-            <p className="text-sm text-gray-400">
-              Fountain / テキストファイルをアップロードして登録できます
-            </p>
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+            >
+              最初の脚本をアップロード
+            </button>
           </div>
         ) : (
           scripts.map((script) => (
@@ -60,6 +77,15 @@ export default function ScriptListPage() {
           ))
         )}
       </main>
+
+      {uploadOpen && (
+        <ScriptUploadModal
+          title="脚本をアップロード"
+          submitLabel="アップロード"
+          onClose={() => setUploadOpen(false)}
+          onSubmit={({ file }) => uploadScript.mutateAsync(file)}
+        />
+      )}
     </div>
   );
 }

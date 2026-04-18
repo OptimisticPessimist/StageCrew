@@ -16,8 +16,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
+  const isFormData =
+    typeof FormData !== "undefined" && options?.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options?.headers as Record<string, string>),
   };
   if (session?.access_token) {
@@ -46,4 +48,6 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: "DELETE" }),
+  upload: <T>(path: string, form: FormData, method: "POST" | "PUT" = "POST") =>
+    request<T>(path, { method, body: form }),
 };
