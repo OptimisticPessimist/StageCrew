@@ -317,6 +317,67 @@ export interface ScriptListItem {
   updated_at: string;
 }
 
+export interface ScriptLine {
+  id: string;
+  scene_id: string;
+  character_id: string | null;
+  content: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ScriptScene {
+  id: string;
+  script_id: string;
+  act_number: number;
+  scene_number: number;
+  heading: string;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+  lines: ScriptLine[];
+}
+
+export interface ScriptCharacterCasting {
+  id: string;
+  production_membership_id: string;
+  display_name: string | null;
+  memo: string | null;
+  sort_order: number;
+}
+
+export interface ScriptCharacter {
+  id: string;
+  script_id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+  castings: ScriptCharacterCasting[];
+}
+
+export interface ScriptUploader {
+  id: string;
+  display_name: string;
+}
+
+export interface ScriptDetail extends ScriptListItem {
+  content: string | null;
+  draft_date: string | null;
+  revision_text: string | null;
+  copyright: string | null;
+  contact: string | null;
+  notes: string | null;
+  synopsis: string | null;
+  pdf_orientation: string;
+  pdf_writing_direction: string;
+  public_terms: string | null;
+  public_contact: string | null;
+  uploader: ScriptUploader;
+  scenes: ScriptScene[];
+  characters: ScriptCharacter[];
+}
+
 // ---- Home ----
 export interface HomeIssue extends DashboardIssue {
   production_id: string;
