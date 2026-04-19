@@ -45,7 +45,8 @@ export default function SceneChartView({
   productionId,
   scriptId,
 }: Props) {
-  const { data, isLoading } = useSceneChart(orgId, productionId, scriptId);
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useSceneChart(orgId, productionId, scriptId);
   const createMapping = useCreateMapping(orgId, productionId, scriptId);
   const updateMapping = useUpdateMapping(orgId, productionId, scriptId);
   const deleteMapping = useDeleteMapping(orgId, productionId, scriptId);
@@ -53,10 +54,30 @@ export default function SceneChartView({
 
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg border p-8 text-center text-sm text-gray-500">
         読み込み中...
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="bg-white rounded-lg border p-8 flex flex-col items-center gap-3">
+        <div className="text-sm font-medium text-red-700">
+          香盤表を取得できませんでした
+        </div>
+        <div className="text-xs text-gray-500">
+          {error instanceof Error ? error.message : "不明なエラー"}
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+        >
+          {isFetching ? "再試行中..." : "再試行"}
+        </button>
       </div>
     );
   }

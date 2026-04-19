@@ -14,7 +14,14 @@ export default function ScriptListPage() {
     productionId: string;
   }>();
 
-  const { data: scripts = [], isLoading } = useScripts(orgId!, productionId!);
+  const {
+    data: scripts,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useScripts(orgId!, productionId!);
   const deleteScript = useDeleteScript(orgId!, productionId!);
   const uploadScript = useUploadScript(orgId!, productionId!);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -28,6 +35,36 @@ export default function ScriptListPage() {
       </div>
     );
   }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3 p-6">
+        <div className="text-sm font-medium text-red-700">
+          脚本一覧を取得できませんでした
+        </div>
+        <div className="text-xs text-gray-500">
+          {error instanceof Error ? error.message : "不明なエラー"}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {isFetching ? "再試行中..." : "再試行"}
+          </button>
+          <Link
+            to={dashboardPath}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            ダッシュボードに戻る
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const scriptList = scripts ?? [];
 
   const handleDelete = (script: ScriptListItem) => {
     if (!window.confirm(`「${script.title}」を削除しますか？`)) return;
@@ -55,7 +92,7 @@ export default function ScriptListPage() {
       </header>
 
       <main className="max-w-4xl mx-auto p-6 space-y-3">
-        {scripts.length === 0 ? (
+        {scriptList.length === 0 ? (
           <div className="text-center py-16 text-gray-500">
             <p className="mb-2">まだ脚本がありません</p>
             <button
@@ -66,7 +103,7 @@ export default function ScriptListPage() {
             </button>
           </div>
         ) : (
-          scripts.map((script) => (
+          scriptList.map((script) => (
             <ScriptCard
               key={script.id}
               script={script}
