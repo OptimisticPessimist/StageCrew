@@ -196,6 +196,7 @@ export default function SceneChartView({
                   const cell = data.matrix[scene.id]?.[char.id] ?? null;
                   const key = `${scene.id}:${char.id}`;
                   const busy = busyKey === key;
+                  const disabled = busyKey !== null;
                   return (
                     <td
                       key={char.id}
@@ -204,7 +205,8 @@ export default function SceneChartView({
                       <button
                         type="button"
                         onClick={() => handleCycle(scene.id, char.id, cell)}
-                        disabled={busy}
+                        disabled={disabled}
+                        aria-busy={busy}
                         title={
                           cell
                             ? LABELS[cell.appearance_type as AppearanceType]

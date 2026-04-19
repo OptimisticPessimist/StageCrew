@@ -35,11 +35,15 @@ function invalidate(
   orgId: string,
   productionId: string,
   scriptId: string,
-) {
-  qc.invalidateQueries({ queryKey: queryKey(orgId, productionId, scriptId) });
-  qc.invalidateQueries({
-    queryKey: scriptDetailKey(orgId, productionId, scriptId),
-  });
+): Promise<void> {
+  return Promise.all([
+    qc.invalidateQueries({
+      queryKey: queryKey(orgId, productionId, scriptId),
+    }),
+    qc.invalidateQueries({
+      queryKey: scriptDetailKey(orgId, productionId, scriptId),
+    }),
+  ]).then(() => undefined);
 }
 
 export function useCreateCasting(
