@@ -80,9 +80,17 @@ export function useReuploadScript(
       );
     },
     onSuccess: () => {
+      // 再アップロードはシーン・登場人物・香盤表マッピング・キャスティング(削除キャラ分)まで
+      // サーバー側で再構築されうるため、関連キャッシュを全て invalidate する
       qc.invalidateQueries({ queryKey: queryKey(orgId, productionId) });
       qc.invalidateQueries({
         queryKey: ["scripts", orgId, productionId, scriptId],
+      });
+      qc.invalidateQueries({
+        queryKey: ["scene-chart", orgId, productionId, scriptId],
+      });
+      qc.invalidateQueries({
+        queryKey: ["castings", orgId, productionId, scriptId],
       });
     },
   });
