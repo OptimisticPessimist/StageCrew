@@ -6,11 +6,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import (
     auth,
+    availability,
     castings,
     comments,
     dashboard,
     departments,
     dept_members,
+    events,
     health,
     home,
     invitations,
@@ -119,6 +121,16 @@ app.include_router(
     dashboard.router,
     prefix="/api/organizations/{org_id}/productions/{production_id}/dashboard",
     tags=["dashboard"],
+)
+app.include_router(
+    events.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/events",
+    tags=["events"],
+)
+app.include_router(
+    availability.router,
+    prefix="/api/organizations/{org_id}/productions/{production_id}/availabilities",
+    tags=["availabilities"],
 )
 app.include_router(
     invitations.org_router,

@@ -473,6 +473,114 @@ export interface ScriptDetail extends ScriptListItem {
   characters: ScriptCharacter[];
 }
 
+// ---- Event (Schedule) ----
+export type EventType = "rehearsal" | "performance" | "meeting" | "other";
+export type AttendanceType = "required" | "optional";
+export type RsvpStatus = "pending" | "accepted" | "declined" | "tentative";
+export type ActualAttendance = "present" | "absent" | "late";
+export type AvailabilityValue = "available" | "unavailable" | "tentative";
+
+export interface EventListItem {
+  id: string;
+  production_id: string;
+  event_type: EventType | string;
+  title: string;
+  description: string | null;
+  start_at: string;
+  end_at: string | null;
+  is_all_day: boolean;
+  location_name: string | null;
+  location_url: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventAttendee {
+  id: string;
+  user_id: string;
+  display_name: string;
+  attendance_type: AttendanceType | string;
+  rsvp_status: RsvpStatus | string;
+  actual_attendance: ActualAttendance | string | null;
+  responded_at: string | null;
+}
+
+export interface EventSceneRef {
+  scene_id: string;
+  heading: string;
+  act_number: number;
+  scene_number: number;
+}
+
+export interface EventDetail extends EventListItem {
+  attendees: EventAttendee[];
+  scenes: EventSceneRef[];
+}
+
+export interface EventCreate {
+  event_type?: EventType;
+  title: string;
+  description?: string | null;
+  start_at: string;
+  end_at?: string | null;
+  is_all_day?: boolean;
+  location_name?: string | null;
+  location_url?: string | null;
+  scene_ids?: string[];
+}
+
+export interface EventUpdate {
+  event_type?: EventType;
+  title?: string;
+  description?: string | null;
+  start_at?: string;
+  end_at?: string | null;
+  is_all_day?: boolean;
+  location_name?: string | null;
+  location_url?: string | null;
+  scene_ids?: string[];
+}
+
+export interface AttendeeAdd {
+  user_ids: string[];
+  attendance_type?: AttendanceType;
+}
+
+export interface AttendeeUpdate {
+  attendance_type?: AttendanceType;
+  rsvp_status?: RsvpStatus;
+  actual_attendance?: ActualAttendance | null;
+}
+
+export interface UserAvailability {
+  id: string;
+  user_id: string;
+  production_id: string;
+  date: string;
+  availability: AvailabilityValue | string;
+  start_time: string | null;
+  end_time: string | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserAvailabilityCreate {
+  date: string;
+  availability?: AvailabilityValue;
+  start_time?: string | null;
+  end_time?: string | null;
+  note?: string | null;
+}
+
+export interface UserAvailabilityUpdate {
+  availability?: AvailabilityValue;
+  start_time?: string | null;
+  end_time?: string | null;
+  note?: string | null;
+}
+
 // ---- Home ----
 export interface HomeIssue extends DashboardIssue {
   production_id: string;

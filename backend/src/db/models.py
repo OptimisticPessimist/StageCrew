@@ -1,13 +1,17 @@
 import uuid
+from datetime import date as date_type
 from datetime import datetime
+from datetime import time as time_type
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
     String,
     Text,
+    Time,
     UniqueConstraint,
     func,
 )
@@ -510,3 +514,92 @@ class SceneCharacterMapping(Base):
 
     scene: Mapped["Scene"] = relationship(back_populates="scene_character_mappings")
     character: Mapped["Character"] = relationship(back_populates="scene_character_mappings")
+
+
+# ============================================================
+# Event (イベント / 稽古)
+# ============================================================
+class Event(Base):
+    __tablename__ = "events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    production_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("productions.id", ondelete="CASCADE"))
+    event_type: Mapped[str] = mapped_column(
+        String(32), default="rehearsal"
+    )  # rehearsal | performance | meeting | other
+    title: Mapped[str] = mapped_column(String(256))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_all_day: Mapped[bool] = mapped_column(Boolean, default=False)
+    location_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    location_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    production: Mapped["Production"] = relationship()
+    creator: Mapped["User"] = relationship()
+    attendees: Mapped[list["EventAttendee"]] = relationship(back_populates="event", cascade="all, delete-orphan")
+    event_scenes: Mapped[list["EventScene"]] = relationship(back_populates="event", cascade="all, delete-orphan")
+
+
+# ============================================================
+# EventAttendee (イベント参加者)
+# ============================================================
+class EventAttendee(Base):
+    __tablename__ = "event_attendees"
+    __table_args__ = (UniqueConstraint("event_id", "user_id", name="uq_event_attendee"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    attendance_type: Mapped[str] = mapped_column(String(16), default="required")  # required | optional
+    rsvp_status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | accepted | declined | tentative
+    actual_attendance: Mapped[str | None] = mapped_column(String(16), nullable=True)  # present | absent | late
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    event: Mapped["Event"] = relationship(back_populates="attendees")
+    user: Mapped["User"] = relationship()
+
+
+# ============================================================
+# EventScene (イベント対象シーン)
+# ============================================================
+class EventScene(Base):
+    __tablename__ = "event_scenes"
+    __table_args__ = (UniqueConstraint("event_id", "scene_id", name="uq_event_scene"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    scene_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenes.id", ondelete="CASCADE"))
+
+    event: Mapped["Event"] = relationship(back_populates="event_scenes")
+    scene: Mapped["Scene"] = relationship()
+
+
+# ============================================================
+# UserAvailability (個人の空き状況)
+# ============================================================
+class UserAvailability(Base):
+    __tablename__ = "user_availabilities"
+    __table_args__ = (UniqueConstraint("user_id", "production_id", "date", name="uq_user_availability_per_day"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    production_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("productions.id", ondelete="CASCADE"))
+    date: Mapped[date_type] = mapped_column(Date)
+    availability: Mapped[str] = mapped_column(String(16), default="available")  # available | unavailable | tentative
+    start_time: Mapped[time_type | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time_type | None] = mapped_column(Time, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship()
+    production: Mapped["Production"] = relationship()

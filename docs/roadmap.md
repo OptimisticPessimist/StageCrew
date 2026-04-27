@@ -133,20 +133,20 @@ User（ユーザー）
 > 香盤表連携（2.5-5）以外は Phase 2 と独立して実装可能。
 
 ### 2.5-1. データモデル・基本CRUD
-- [ ] `Event` モデル（event_type, title, description, start_at, end_at, location_name, location_url, is_all_day, production_id, created_by）
-- [ ] `EventAttendee` モデル（event_id, user_id, attendance_type, rsvp_status, actual_attendance, responded_at）
-- [ ] `EventScene` モデル（event_id, scene_id）← 香盤表連携用
-- [ ] `UserAvailability` モデル（user_id, production_id, date, availability, start_time, end_time, note）
-- [ ] Event CRUD API（作成・取得・更新・削除、日付範囲フィルタ）
-- [ ] EventAttendee API（招集メンバー追加・削除・RSVP回答）
-- [ ] UserAvailability API（個人の空き登録・取得・更新）
+- [x] `Event` モデル（event_type, title, description, start_at, end_at, location_name, location_url, is_all_day, production_id, created_by）
+- [x] `EventAttendee` モデル（event_id, user_id, attendance_type, rsvp_status, actual_attendance, responded_at）
+- [x] `EventScene` モデル（event_id, scene_id）← 香盤表連携用
+- [x] `UserAvailability` モデル（user_id, production_id, date, availability, start_time, end_time, note）
+- [x] Event CRUD API（作成・取得・更新・削除、日付範囲フィルタ）
+- [x] EventAttendee API（招集メンバー追加・削除・RSVP回答）
+- [x] UserAvailability API（個人の空き登録・取得・更新）
 
 ### 2.5-2. カレンダービュー
-- [ ] 月間カレンダー表示（公演イベント一覧）
-- [ ] 週間カレンダー表示（時間帯付き詳細ビュー）
-- [ ] イベント詳細モーダル（参加者一覧、出欠状況、対象シーン）
-- [ ] イベント作成・編集 UI
-- [ ] 日付セルクリックでクイック作成
+- [x] 月間カレンダー表示（公演イベント一覧）
+- [x] 週間カレンダー表示（時間帯付き詳細ビュー）
+- [x] イベント詳細モーダル（参加者一覧、出欠状況、対象シーン）
+- [x] イベント作成・編集 UI
+- [x] 日付セルクリックでクイック作成
 
 ### 2.5-3. 出欠・RSVP管理
 - [ ] 招集メンバーの一括追加（部門全員、キャスト全員、個別選択）
