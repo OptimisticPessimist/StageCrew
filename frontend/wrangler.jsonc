@@ -1,0 +1,8 @@
+{
+  // Cloudflare Workers with Assets — フロントエンドの静的ファイルを配信
+  "name": "stagecrew",
+  "compatibility_date": "2026-04-19",
+  "assets": {
+    "directory": "./dist"
+  }
+}
