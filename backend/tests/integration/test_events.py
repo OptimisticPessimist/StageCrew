@@ -383,9 +383,7 @@ async def test_production_member_not_manager_cannot_write_events(
     start = _now()
 
     # CREATE — member は 403
-    resp = await client_as_other.post(
-        f"{_url(prod)}/", json={"title": "x", "start_at": start.isoformat()}
-    )
+    resp = await client_as_other.post(f"{_url(prod)}/", json={"title": "x", "start_at": start.isoformat()})
     assert resp.status_code == 403, f"member CREATE は 403 期待: {resp.text}"
 
     # DELETE event — member は 403
@@ -442,9 +440,7 @@ async def test_org_admin_not_production_member_cannot_write_events(
 
     start = _now()
     # CREATE — production 非在籍の org admin は 403 になるべき（production_membership 不足）
-    resp = await client_as_other.post(
-        f"{_url(prod)}/", json={"title": "x", "start_at": start.isoformat()}
-    )
+    resp = await client_as_other.post(f"{_url(prod)}/", json={"title": "x", "start_at": start.isoformat()})
     assert resp.status_code == 403, f"org admin 非在籍の CREATE は 403 期待: {resp.text}"
     assert "公演メンバーではありません" in resp.json().get("detail", "")
 
