@@ -96,21 +96,21 @@ User（ユーザー）
 - [x] 脚本更新時のキャスティング情報保持
 
 ### 2-4. 香盤表（Scene Chart）
-- [ ] 香盤表データモデル（SceneChart / SceneCharacterMapping）
-- [ ] Fountain パース時の香盤表自動生成
-- [ ] 手動編集 API（シーン×登場人物マッピングの追加・削除）
-- [ ] 香盤表の表示 UI
+- [x] 香盤表データモデル（SceneChart / SceneCharacterMapping）
+- [x] Fountain パース時の香盤表自動生成
+- [x] 手動編集 API（シーン×登場人物マッピングの追加・削除）
+- [x] 香盤表の表示 UI  ← 2-8 と統合
 
 ### 2-5. PDF出力
-- [ ] 脚本 PDF 生成（縦書き/横書き対応）
-- [ ] 日本語フォント対応
-- [ ] メタデータ付きレイアウト（著者、日付、改訂番号、連絡先）
-- [ ] PDF ダウンロード API
+- [x] 脚本 PDF 生成（縦書き/横書き対応）
+- [x] 日本語フォント対応
+- [x] メタデータ付きレイアウト（著者、日付、改訂番号、連絡先）
+- [x] PDF ダウンロード API
 
 ### 2-6. バージョン管理
-- [ ] 改訂番号（revision）管理
-- [ ] 改訂テキスト（revision_text）メモ
-- [ ] 更新時のデータ再構築（シーン・セリフ・マッピング）とキャスティング保持
+- [x] 改訂番号（revision）管理
+- [x] 改訂テキスト（revision_text）メモ
+- [x] 更新時のデータ再構築（シーン・セリフ・マッピング）とキャスティング保持
 
 ### 2-7. Discord 通知連携
 - [x] 脚本アップロード/更新時の Webhook 通知
@@ -118,12 +118,12 @@ User（ユーザー）
 - [x] 生成 PDF の添付
 
 ### 2-8. フロントエンド
-- [ ] 脚本一覧ページ
-- [ ] 脚本詳細ページ（シーン・登場人物・セリフ表示）
-- [ ] 脚本アップロード UI
-- [ ] キャスティング UI
-- [ ] 香盤表ビュー
-- [ ] PDF ダウンロードボタン
+- [x] 脚本一覧ページ
+- [x] 脚本詳細ページ（シーン・登場人物・セリフ表示）
+- [x] 脚本アップロード UI
+- [x] キャスティング UI
+- [x] 香盤表ビュー
+- [x] PDF ダウンロードボタン
 
 ---
 
@@ -133,20 +133,20 @@ User（ユーザー）
 > 香盤表連携（2.5-5）以外は Phase 2 と独立して実装可能。
 
 ### 2.5-1. データモデル・基本CRUD
-- [ ] `Event` モデル（event_type, title, description, start_at, end_at, location_name, location_url, is_all_day, production_id, created_by）
-- [ ] `EventAttendee` モデル（event_id, user_id, attendance_type, rsvp_status, actual_attendance, responded_at）
-- [ ] `EventScene` モデル（event_id, scene_id）← 香盤表連携用
-- [ ] `UserAvailability` モデル（user_id, production_id, date, availability, start_time, end_time, note）
-- [ ] Event CRUD API（作成・取得・更新・削除、日付範囲フィルタ）
-- [ ] EventAttendee API（招集メンバー追加・削除・RSVP回答）
-- [ ] UserAvailability API（個人の空き登録・取得・更新）
+- [x] `Event` モデル（event_type, title, description, start_at, end_at, location_name, location_url, is_all_day, production_id, created_by）
+- [x] `EventAttendee` モデル（event_id, user_id, attendance_type, rsvp_status, actual_attendance, responded_at）
+- [x] `EventScene` モデル（event_id, scene_id）← 香盤表連携用
+- [x] `UserAvailability` モデル（user_id, production_id, date, availability, start_time, end_time, note）
+- [x] Event CRUD API（作成・取得・更新・削除、日付範囲フィルタ）
+- [x] EventAttendee API（招集メンバー追加・削除・RSVP回答）
+- [x] UserAvailability API（個人の空き登録・取得・更新）
 
 ### 2.5-2. カレンダービュー
-- [ ] 月間カレンダー表示（公演イベント一覧）
-- [ ] 週間カレンダー表示（時間帯付き詳細ビュー）
-- [ ] イベント詳細モーダル（参加者一覧、出欠状況、対象シーン）
-- [ ] イベント作成・編集 UI
-- [ ] 日付セルクリックでクイック作成
+- [x] 月間カレンダー表示（公演イベント一覧）
+- [x] 週間カレンダー表示（時間帯付き詳細ビュー）
+- [x] イベント詳細モーダル（参加者一覧、出欠状況、対象シーン）
+- [x] イベント作成・編集 UI
+- [x] 日付セルクリックでクイック作成
 
 ### 2.5-3. 出欠・RSVP管理
 - [ ] 招集メンバーの一括追加（部門全員、キャスト全員、個別選択）

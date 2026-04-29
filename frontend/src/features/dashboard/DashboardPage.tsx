@@ -52,6 +52,8 @@ export default function DashboardPage() {
   const { progress, my_tasks, deadline_warnings } = data;
   const boardPath = `/organizations/${orgId}/productions/${productionId}/board`;
   const ganttPath = `/organizations/${orgId}/productions/${productionId}/gantt`;
+  const scriptsPath = `/organizations/${orgId}/productions/${productionId}/scripts`;
+  const calendarPath = `/organizations/${orgId}/productions/${productionId}/calendar`;
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -73,6 +75,18 @@ export default function DashboardPage() {
             className="text-sm text-indigo-600 hover:text-indigo-800"
           >
             ガントチャート
+          </Link>
+          <Link
+            to={scriptsPath}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            脚本
+          </Link>
+          <Link
+            to={calendarPath}
+            className="text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            カレンダー
           </Link>
           <CountdownBadge orgId={orgId!} productionId={productionId!} />
         </div>

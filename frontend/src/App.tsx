@@ -11,6 +11,9 @@ import LoginPage from "@/features/auth/LoginPage";
 import AuthCallbackPage from "@/features/auth/AuthCallbackPage";
 import ProtectedRoute from "@/features/auth/ProtectedRoute";
 import HomePage from "@/features/home/HomePage";
+import ScriptListPage from "@/features/scripts/ScriptListPage";
+import ScriptDetailPage from "@/features/scripts/ScriptDetailPage";
+import CalendarPage from "@/features/calendar/CalendarPage";
 
 export default function App() {
   return (
@@ -56,6 +59,30 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DepartmentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/calendar"
+          element={
+            <ProtectedRoute>
+              <CalendarPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/scripts"
+          element={
+            <ProtectedRoute>
+              <ScriptListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/organizations/:orgId/productions/:productionId/scripts/:scriptId"
+          element={
+            <ProtectedRoute>
+              <ScriptDetailPage />
             </ProtectedRoute>
           }
         />

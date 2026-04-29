@@ -1,14 +1,12 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
+  // Cloudflare Workers with Assets — フロントエンドの静的ファイルを配信
+  // Worker 名は Cloudflare CI のプロジェクト名に合わせる
   "name": "stagecrew-front",
-  "compatibility_date": "2026-04-18",
-  "observability": {
-    "enabled": true
-  },
+  "compatibility_date": "2026-04-19",
   "assets": {
+    "directory": "./dist",
+    // SPA ルーティング: 未知パスは index.html へフォールバック
+    // （_redirects の "/* /index.html 200" と同等・重複排除）
     "not_found_handling": "single-page-application"
-  },
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  }
 }
