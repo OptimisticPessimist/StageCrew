@@ -340,7 +340,9 @@ async def test_org_admin_not_production_member_cannot_list(
         .returning(OM.org_role)
     )
     updated_rows = result.fetchall()
-    assert len(updated_rows) == 1 and updated_rows[0][0] == "admin", "前提: other_user が org admin に昇格されていること"
+    assert len(updated_rows) == 1 and updated_rows[0][0] == "admin", (
+        "前提: other_user が org admin に昇格されていること"
+    )
 
     resp = await client_as_other.get(f"{_url(prod)}/")
     assert resp.status_code == 403, f"org admin 非所属の list は 403 期待: {resp.text}"
